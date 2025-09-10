@@ -1,0 +1,1768 @@
+{
+    "openapi": "3.0.0",
+    "info": {
+        "title": "Nuage Pay docs",
+        "version": "1.0.0"
+    },
+    "servers": [
+        {
+            "url": "http://sandbox.nuage.money/api",
+            "description": "this is the local server"
+        },
+        {
+            "url": "http://localhost:8000/api",
+            "description": "this is the live server"
+        }
+    ],
+    "paths": {
+        "/v1/make-bank-payment": {
+            "post": {
+                "tags": [
+                    "Bank Payment"
+                ],
+                "summary": "Il est question d'initier un paiement avec une passerelle de paiement Mobile\n     *       En effet, vous devez effectuer une requête POST en passant dans le corps de votre\n     *       requête des données formatées en JSON",
+                "operationId": "make-bank-payment",
+                "requestBody": {
+                    "required": true,
+                    "content": {
+                        "application/json": {
+                            "schema": {
+                                "$ref": "#/components/schemas/MakeBankPaymentRequestSchema"
+                            }
+                        }
+                    }
+                },
+                "responses": {
+                    "200": {
+                        "description": "Successful operation",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/PaymentResponseResource"
+                                }
+                            }
+                        }
+                    },
+                    "400": {
+                        "description": "Bad Request"
+                    },
+                    "401": {
+                        "description": "Unauthenticated"
+                    },
+                    "403": {
+                        "description": "Forbidden"
+                    }
+                },
+                "security": [
+                    {
+                        "bearerAuth": []
+                    }
+                ]
+            }
+        },
+        "/v1/check-bank-payment": {
+            "post": {
+                "tags": [
+                    "Bank Payment"
+                ],
+                "summary": "Use to verify pay in request status",
+                "description": "Use to verify payout request status. We have 4 different status which are : <br/>\n    - CREATED (when the request is initialize) <br/>\n    - PENDING (when the request in being process) <br/>\n    - SUCCESSFUL (when the request has been completed successfully) <br/>\n    - FAILED (when the request has failed)",
+                "operationId": "check-bank-payment",
+                "requestBody": {
+                    "required": true,
+                    "content": {
+                        "application/json": {
+                            "schema": {
+                                "$ref": "#/components/schemas/CheckRequestStatusSchema"
+                            }
+                        }
+                    }
+                },
+                "responses": {
+                    "200": {
+                        "description": "Successful operation",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/PaymentResponseResource"
+                                }
+                            }
+                        }
+                    },
+                    "400": {
+                        "description": "Bad Request"
+                    },
+                    "401": {
+                        "description": "Unauthenticated"
+                    },
+                    "403": {
+                        "description": "Forbidden"
+                    }
+                },
+                "security": [
+                    {
+                        "bearerAuth": []
+                    }
+                ]
+            }
+        },
+        "/v1/make-bank-payout": {
+            "post": {
+                "tags": [
+                    "Bank Payout"
+                ],
+                "summary": "This request is use to initiate a payout request ",
+                "operationId": "make-bank-payout",
+                "requestBody": {
+                    "required": true,
+                    "content": {
+                        "application/json": {
+                            "schema": {
+                                "$ref": "#/components/schemas/MakeBankPayoutRequestSchema"
+                            }
+                        }
+                    }
+                },
+                "responses": {
+                    "200": {
+                        "description": "Successful operation",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/BankPaymentResponseResource"
+                                }
+                            }
+                        }
+                    },
+                    "400": {
+                        "description": "Bad Request"
+                    },
+                    "401": {
+                        "description": "Unauthenticated"
+                    },
+                    "403": {
+                        "description": "Forbidden"
+                    }
+                },
+                "security": [
+                    {
+                        "bearerAuth": []
+                    }
+                ]
+            }
+        },
+        "/v1/check-bank-payout": {
+            "post": {
+                "tags": [
+                    "Bank Payout"
+                ],
+                "summary": "Use to verify payout request status",
+                "description": "Use to verify payout request status. We have 4 different status which are : <br/>\n    - CREATED (when the request is initialize) <br/>\n    - PENDING (when the request in being process) <br/>\n    - SUCCESSFUL (when the request has been completed successfully) <br/>\n    - FAILED (when the request has failed)",
+                "operationId": "check-bank-payout",
+                "requestBody": {
+                    "required": true,
+                    "content": {
+                        "application/json": {
+                            "schema": {
+                                "$ref": "#/components/schemas/CheckRequestStatusSchema"
+                            }
+                        }
+                    }
+                },
+                "responses": {
+                    "200": {
+                        "description": "Successful operation",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/PaymentResponseResource"
+                                }
+                            }
+                        }
+                    },
+                    "400": {
+                        "description": "Bad Request"
+                    },
+                    "401": {
+                        "description": "Unauthenticated"
+                    },
+                    "403": {
+                        "description": "Forbidden"
+                    }
+                },
+                "security": [
+                    {
+                        "bearerAuth": []
+                    }
+                ]
+            }
+        },
+        "/v1/verify-account": {
+            "post": {
+                "tags": [
+                    "Bank Payout"
+                ],
+                "summary": "Use to verify payout request status",
+                "description": "Use to verify payout request status. We have 4 different status which are",
+                "operationId": "verify-account",
+                "requestBody": {
+                    "required": true,
+                    "content": {
+                        "application/json": {
+                            "schema": {
+                                "$ref": "#/components/schemas/VerifyAccountRequestSchema"
+                            }
+                        }
+                    }
+                },
+                "responses": {
+                    "200": {
+                        "description": "Successful operation",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/VerifyAccountResponseResource"
+                                }
+                            }
+                        }
+                    },
+                    "400": {
+                        "description": "Bad Request"
+                    },
+                    "401": {
+                        "description": "Unauthenticated"
+                    },
+                    "403": {
+                        "description": "Forbidden"
+                    }
+                },
+                "security": [
+                    {
+                        "bearerAuth": []
+                    }
+                ]
+            }
+        },
+        "/get-bank-code": {
+            "post": {
+                "tags": [
+                    "Global"
+                ],
+                "summary": "Use to verify payout request status",
+                "description": "Use to verify payout request status",
+                "operationId": "get-bank-code",
+                "requestBody": {
+                    "required": true,
+                    "content": {
+                        "application/json": {
+                            "schema": {
+                                "$ref": "#/components/schemas/BankCodeRequestSchema"
+                            }
+                        }
+                    }
+                },
+                "responses": {
+                    "200": {
+                        "description": "Successful operation",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/BankCodeResponseResource"
+                                }
+                            }
+                        }
+                    },
+                    "400": {
+                        "description": "Bad Request"
+                    },
+                    "403": {
+                        "description": "Forbidden"
+                    }
+                }
+            }
+        },
+        "/country-available": {
+            "get": {
+                "tags": [
+                    "Global"
+                ],
+                "summary": "This request is use to have all country availlables ",
+                "operationId": "country-availlables",
+                "responses": {
+                    "200": {
+                        "description": "Successful operation",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/CountryResponseResource"
+                                }
+                            }
+                        }
+                    },
+                    "403": {
+                        "description": "Forbidden"
+                    }
+                }
+            }
+        },
+        "/v1/make-mobile-payment": {
+            "post": {
+                "tags": [
+                    "Mobile Payment"
+                ],
+                "summary": "Il est question d'initier un paiement avec une passerelle de paiement Mobile\n     *       En effet, vous devez effectuer une requête POST en passant dans le corps de votre\n     *       requête des données formatées en JSON",
+                "operationId": "make-payment",
+                "requestBody": {
+                    "required": true,
+                    "content": {
+                        "application/json": {
+                            "schema": {
+                                "$ref": "#/components/schemas/MakePaymentRequestSchema"
+                            }
+                        }
+                    }
+                },
+                "responses": {
+                    "200": {
+                        "description": "Successful operation",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/PaymentResponseResource"
+                                }
+                            }
+                        }
+                    },
+                    "400": {
+                        "description": "Bad Request"
+                    },
+                    "401": {
+                        "description": "Unauthenticated"
+                    },
+                    "403": {
+                        "description": "Forbidden"
+                    }
+                },
+                "security": [
+                    {
+                        "bearerAuth": []
+                    }
+                ]
+            }
+        },
+        "/v1/check-mobile-payment": {
+            "post": {
+                "tags": [
+                    "Mobile Payment"
+                ],
+                "summary": "Use to verify pay in request status",
+                "description": "Use to verify payout request status. We have 4 different status which are : <br/>\n            - CREATED (when the request is initialize) <br/>\n            - PENDING (when the request in being process) <br/>\n            - SUCCESSFUL (when the request has been completed successfully) <br/>\n            - FAILED (when the request has failed)",
+                "operationId": "check-mobile-payment",
+                "requestBody": {
+                    "required": true,
+                    "content": {
+                        "application/json": {
+                            "schema": {
+                                "$ref": "#/components/schemas/CheckRequestStatusSchema"
+                            }
+                        }
+                    }
+                },
+                "responses": {
+                    "200": {
+                        "description": "Successful operation",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/PaymentResponseResource"
+                                }
+                            }
+                        }
+                    },
+                    "400": {
+                        "description": "Bad Request"
+                    },
+                    "401": {
+                        "description": "Unauthenticated"
+                    },
+                    "403": {
+                        "description": "Forbidden"
+                    }
+                },
+                "security": [
+                    {
+                        "bearerAuth": []
+                    }
+                ]
+            }
+        },
+        "/v1/check-balance": {
+            "post": {
+                "tags": [
+                    "Global"
+                ],
+                "summary": "Check service balance for a particular currency",
+                "description": "Check service balance for a particular currency",
+                "operationId": "check-balance",
+                "requestBody": {
+                    "required": true,
+                    "content": {
+                        "application/json": {
+                            "schema": {
+                                "$ref": "#/components/schemas/CheckWalletRequestSchema"
+                            }
+                        }
+                    }
+                },
+                "responses": {
+                    "200": {
+                        "description": "Successful operation",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/PaymentResponseResource"
+                                }
+                            }
+                        }
+                    },
+                    "400": {
+                        "description": "Bad Request"
+                    },
+                    "401": {
+                        "description": "Unauthenticated"
+                    },
+                    "403": {
+                        "description": "Forbidden"
+                    }
+                },
+                "security": [
+                    {
+                        "bearerAuth": []
+                    }
+                ]
+            }
+        },
+        "/v1/make-mobile-payout": {
+            "post": {
+                "tags": [
+                    "Mobile Payout"
+                ],
+                "summary": "This request is use to initiate a payout request ",
+                "operationId": "make-mobile-payout",
+                "requestBody": {
+                    "required": true,
+                    "content": {
+                        "application/json": {
+                            "schema": {
+                                "$ref": "#/components/schemas/MakePayoutRequestSchema"
+                            }
+                        }
+                    }
+                },
+                "responses": {
+                    "200": {
+                        "description": "Successful operation",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/PaymentResponseResource"
+                                }
+                            }
+                        }
+                    },
+                    "400": {
+                        "description": "Bad Request"
+                    },
+                    "401": {
+                        "description": "Unauthenticated"
+                    },
+                    "403": {
+                        "description": "Forbidden"
+                    }
+                },
+                "security": [
+                    {
+                        "bearerAuth": []
+                    }
+                ]
+            }
+        },
+        "/v1/check-mobile-payout": {
+            "post": {
+                "tags": [
+                    "Mobile Payout"
+                ],
+                "summary": "Use to verify payout request status",
+                "description": "Use to verify payout request status. We have 4 different status which are : <br/>\n            - CREATED (when the request is initialize) <br/>\n            - PENDING (when the request in being process) <br/>\n            - SUCCESSFUL (when the request has been completed successfully) <br/>\n            - FAILED (when the request has failed)",
+                "operationId": "check-mobile-payout",
+                "requestBody": {
+                    "required": true,
+                    "content": {
+                        "application/json": {
+                            "schema": {
+                                "$ref": "#/components/schemas/CheckRequestStatusSchema"
+                            }
+                        }
+                    }
+                },
+                "responses": {
+                    "200": {
+                        "description": "Successful operation",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/PaymentResponseResource"
+                                }
+                            }
+                        }
+                    },
+                    "400": {
+                        "description": "Bad Request"
+                    },
+                    "401": {
+                        "description": "Unauthenticated"
+                    },
+                    "403": {
+                        "description": "Forbidden"
+                    }
+                },
+                "security": [
+                    {
+                        "bearerAuth": []
+                    }
+                ]
+            }
+        },
+        "/v1/app-wallets": {
+            "post": {
+                "tags": [
+                    "Global"
+                ],
+                "summary": "List of all the wallet link to a particular app",
+                "description": "List of all the wallet link to a particular app",
+                "operationId": "app-wallets",
+                "responses": {
+                    "200": {
+                        "description": "Successful operation",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/AppWalletResponseResource"
+                                }
+                            }
+                        }
+                    },
+                    "400": {
+                        "description": "Bad Request"
+                    },
+                    "401": {
+                        "description": "Unauthenticated"
+                    },
+                    "403": {
+                        "description": "Forbidden"
+                    }
+                },
+                "security": [
+                    {
+                        "bearerAuth": []
+                    }
+                ]
+            }
+        },
+        "/v1/app-transaction": {
+            "post": {
+                "tags": [
+                    "Global"
+                ],
+                "summary": "List of all the wallet link to a particular app",
+                "description": "List of all the wallet link to a particular app",
+                "operationId": "app-transaction",
+                "responses": {
+                    "200": {
+                        "description": "Successful operation",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/AppTransactionResponseResource"
+                                }
+                            }
+                        }
+                    },
+                    "400": {
+                        "description": "Bad Request"
+                    },
+                    "401": {
+                        "description": "Unauthenticated"
+                    },
+                    "403": {
+                        "description": "Forbidden"
+                    }
+                },
+                "security": [
+                    {
+                        "bearerAuth": []
+                    }
+                ]
+            }
+        },
+        "/currencies": {
+            "get": {
+                "tags": [
+                    "Global"
+                ],
+                "summary": "This request is use to have all currencies ",
+                "operationId": "currencies",
+                "responses": {
+                    "200": {
+                        "description": "Successful operation",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/CurrencyResponseResource"
+                                }
+                            }
+                        }
+                    },
+                    "403": {
+                        "description": "Forbidden"
+                    }
+                }
+            }
+        }
+    },
+    "components": {
+        "schemas": {
+            "CustomExchangeRateMargin": {
+                "required": [
+                    "exchange_margin_id",
+                    "margin"
+                ],
+                "properties": {
+                    "exchange_margin_id": {
+                        "description": "",
+                        "type": "integer",
+                        "format": "int32",
+                        "readOnly": false,
+                        "nullable": false
+                    },
+                    "margin": {
+                        "description": "",
+                        "type": "number",
+                        "format": "number",
+                        "readOnly": false,
+                        "nullable": false
+                    },
+                    "created_at": {
+                        "description": "",
+                        "type": "string",
+                        "format": "date-time",
+                        "readOnly": true,
+                        "nullable": true
+                    },
+                    "updated_at": {
+                        "description": "",
+                        "type": "string",
+                        "format": "date-time",
+                        "readOnly": true,
+                        "nullable": true
+                    }
+                },
+                "type": "object"
+            },
+            "ExchangeFeeMargin": {
+                "required": [
+                    "currency",
+                    "amount",
+                    "exchange_request"
+                ],
+                "properties": {
+                    "currency": {
+                        "description": "",
+                        "type": "string",
+                        "readOnly": false,
+                        "nullable": false
+                    },
+                    "amount": {
+                        "description": "",
+                        "type": "number",
+                        "format": "number",
+                        "readOnly": false,
+                        "nullable": false
+                    },
+                    "exchange_request": {
+                        "description": "",
+                        "type": "string",
+                        "readOnly": false,
+                        "nullable": false
+                    },
+                    "created_at": {
+                        "description": "",
+                        "type": "string",
+                        "format": "date-time",
+                        "readOnly": true,
+                        "nullable": true
+                    },
+                    "updated_at": {
+                        "description": "",
+                        "type": "string",
+                        "format": "date-time",
+                        "readOnly": true,
+                        "nullable": true
+                    }
+                },
+                "type": "object"
+            },
+            "ExchangeRateMargin": {
+                "required": [
+                    "from_currency",
+                    "to_currency",
+                    "margin"
+                ],
+                "properties": {
+                    "from_currency": {
+                        "description": "",
+                        "type": "string",
+                        "readOnly": false,
+                        "nullable": false
+                    },
+                    "to_currency": {
+                        "description": "",
+                        "type": "string",
+                        "readOnly": false,
+                        "nullable": false
+                    },
+                    "margin": {
+                        "description": "",
+                        "type": "number",
+                        "format": "number",
+                        "readOnly": false,
+                        "nullable": false
+                    },
+                    "created_at": {
+                        "description": "",
+                        "type": "string",
+                        "format": "date-time",
+                        "readOnly": true,
+                        "nullable": true
+                    },
+                    "updated_at": {
+                        "description": "",
+                        "type": "string",
+                        "format": "date-time",
+                        "readOnly": true,
+                        "nullable": true
+                    }
+                },
+                "type": "object"
+            },
+            "ExchangeRequest": {
+                "required": [
+                    "from_currency",
+                    "to_currency",
+                    "amount",
+                    "market_rate",
+                    "status"
+                ],
+                "properties": {
+                    "from_currency": {
+                        "description": "",
+                        "type": "string",
+                        "readOnly": false,
+                        "nullable": false
+                    },
+                    "to_currency": {
+                        "description": "",
+                        "type": "string",
+                        "readOnly": false,
+                        "nullable": false
+                    },
+                    "amount": {
+                        "description": "",
+                        "type": "number",
+                        "format": "number",
+                        "readOnly": false,
+                        "nullable": false
+                    },
+                    "market_rate": {
+                        "description": "",
+                        "type": "number",
+                        "format": "number",
+                        "readOnly": false,
+                        "nullable": false
+                    },
+                    "rate": {
+                        "description": "",
+                        "type": "number",
+                        "format": "number",
+                        "readOnly": false,
+                        "nullable": true
+                    },
+                    "status": {
+                        "description": "",
+                        "type": "string",
+                        "readOnly": false,
+                        "nullable": false
+                    },
+                    "created_at": {
+                        "description": "",
+                        "type": "string",
+                        "format": "date-time",
+                        "readOnly": true,
+                        "nullable": true
+                    },
+                    "updated_at": {
+                        "description": "",
+                        "type": "string",
+                        "format": "date-time",
+                        "readOnly": true,
+                        "nullable": true
+                    }
+                },
+                "type": "object"
+            },
+            "FincraBank": {
+                "required": [
+                    "name",
+                    "code"
+                ],
+                "properties": {
+                    "name": {
+                        "description": "",
+                        "type": "string",
+                        "readOnly": false,
+                        "nullable": false
+                    },
+                    "code": {
+                        "description": "",
+                        "type": "string",
+                        "readOnly": false,
+                        "nullable": false
+                    },
+                    "currency": {
+                        "description": "",
+                        "type": "string",
+                        "readOnly": false,
+                        "nullable": true
+                    },
+                    "created_at": {
+                        "description": "",
+                        "type": "string",
+                        "format": "date-time",
+                        "readOnly": true,
+                        "nullable": true
+                    },
+                    "updated_at": {
+                        "description": "",
+                        "type": "string",
+                        "format": "date-time",
+                        "readOnly": true,
+                        "nullable": true
+                    }
+                },
+                "type": "object"
+            },
+            "FincraBankAccount": {
+                "required": [
+                    "account_number",
+                    "account_name",
+                    "bank_code"
+                ],
+                "properties": {
+                    "account_number": {
+                        "description": "",
+                        "type": "string",
+                        "readOnly": false,
+                        "nullable": false
+                    },
+                    "account_name": {
+                        "description": "",
+                        "type": "string",
+                        "readOnly": false,
+                        "nullable": false
+                    },
+                    "bank_code": {
+                        "description": "",
+                        "type": "string",
+                        "readOnly": false,
+                        "nullable": false
+                    },
+                    "created_at": {
+                        "description": "",
+                        "type": "string",
+                        "format": "date-time",
+                        "readOnly": true,
+                        "nullable": true
+                    },
+                    "updated_at": {
+                        "description": "",
+                        "type": "string",
+                        "format": "date-time",
+                        "readOnly": true,
+                        "nullable": true
+                    }
+                },
+                "type": "object"
+            },
+            "StartButtonBank": {
+                "required": [
+                    "startbutton_id",
+                    "name",
+                    "code"
+                ],
+                "properties": {
+                    "name": {
+                        "description": "",
+                        "type": "string",
+                        "readOnly": false,
+                        "nullable": false
+                    },
+                    "code": {
+                        "description": "",
+                        "type": "string",
+                        "readOnly": false,
+                        "nullable": false
+                    },
+                    "currency": {
+                        "description": "",
+                        "type": "string",
+                        "readOnly": false,
+                        "nullable": true
+                    },
+                    "created_at": {
+                        "description": "",
+                        "type": "string",
+                        "format": "date-time",
+                        "readOnly": true,
+                        "nullable": true
+                    },
+                    "updated_at": {
+                        "description": "",
+                        "type": "string",
+                        "format": "date-time",
+                        "readOnly": true,
+                        "nullable": true
+                    }
+                },
+                "type": "object"
+            },
+            "BankCodeRequestSchema": {
+                "title": "Bank Code Request Schema",
+                "description": "this schema is use to make payment request",
+                "required": [
+                    "currency"
+                ],
+                "properties": {
+                    "currency": {
+                        "title": "currency",
+                        "description": "currency for which you want bank code",
+                        "type": "string",
+                        "example": "NGN"
+                    }
+                },
+                "type": "object"
+            },
+            "CheckRequestStatusSchema": {
+                "title": "Check Payment Request Status",
+                "description": "Use to verify pay in request status",
+                "required": [
+                    "service",
+                    "ref_id",
+                    "payment_method"
+                ],
+                "properties": {
+                    "service": {
+                        "title": "service",
+                        "description": "client_id of the service",
+                        "type": "string",
+                        "example": "client_id of the service"
+                    },
+                    "ref_id": {
+                        "title": "ref_id",
+                        "description": "this is the referrence of the id",
+                        "type": "string",
+                        "example": "qwe123asd123"
+                    },
+                    "payment_method": {
+                        "title": "payment_method",
+                        "description": "this is the operator of the request given to you when you made a request",
+                        "type": "string",
+                        "example": "toupesu_mobile"
+                    }
+                },
+                "type": "object"
+            },
+            "CheckWalletRequestSchema": {
+                "title": "Get wallet balance",
+                "description": "Get wallet balance",
+                "required": [
+                    "service",
+                    "currency"
+                ],
+                "properties": {
+                    "service": {
+                        "title": "service",
+                        "description": "client_id of the service",
+                        "type": "string",
+                        "example": "client_id of the service"
+                    },
+                    "currency": {
+                        "title": "currency",
+                        "description": "currency give the currency code",
+                        "type": "string",
+                        "example": "xaf"
+                    }
+                },
+                "type": "object"
+            },
+            "MakeBankPaymentRequestSchema": {
+                "title": "Make bank payment request schema",
+                "description": "this schema is use to make payment request",
+                "required": [
+                    "service",
+                    "currency",
+                    "country",
+                    "ref_id",
+                    "amount",
+                    "email"
+                ],
+                "properties": {
+                    "service": {
+                        "title": "service",
+                        "description": "client_id of the service",
+                        "type": "string",
+                        "example": "client_id of the service"
+                    },
+                    "currency": {
+                        "title": "currency",
+                        "description": "currency give the currency code",
+                        "type": "string",
+                        "example": "xaf"
+                    },
+                    "country": {
+                        "title": "country",
+                        "description": "thisis the country code of the client",
+                        "type": "string",
+                        "example": "cmr"
+                    },
+                    "ref_id": {
+                        "title": "ref_id",
+                        "description": "this is the referrence of the id",
+                        "type": "string",
+                        "example": "qwe123asd123"
+                    },
+                    "amount": {
+                        "title": "amount",
+                        "description": "this is the amount",
+                        "type": "number",
+                        "format": "float",
+                        "example": "500"
+                    },
+                    "email": {
+                        "title": "email",
+                        "description": "this is the email account for the payment",
+                        "type": "string",
+                        "example": "test@gmail.com"
+                    }
+                },
+                "type": "object"
+            },
+            "MakeBankPayoutRequestSchema": {
+                "title": "Make bank payment request schema",
+                "description": "this schema is use to make payment request",
+                "required": [
+                    "service",
+                    "currency",
+                    "country",
+                    "ref_id",
+                    "amount",
+                    "account_number",
+                    "account_name",
+                    "bank_code"
+                ],
+                "properties": {
+                    "service": {
+                        "title": "service",
+                        "description": "client_id of the service",
+                        "type": "string",
+                        "example": "client_id of the service"
+                    },
+                    "currency": {
+                        "title": "currency",
+                        "description": "currency give the currency code",
+                        "type": "string",
+                        "example": "xaf"
+                    },
+                    "country": {
+                        "title": "country",
+                        "description": "thisis the country code of the client",
+                        "type": "string",
+                        "example": "cmr"
+                    },
+                    "ref_id": {
+                        "title": "ref_id",
+                        "description": "this is the referrence of the id",
+                        "type": "string",
+                        "example": "qwe123asd123"
+                    },
+                    "amount": {
+                        "title": "amount",
+                        "description": "this is the amount",
+                        "type": "number",
+                        "format": "float",
+                        "example": "500"
+                    },
+                    "bank_code": {
+                        "title": "bank_code",
+                        "description": "this is the code of your bank",
+                        "type": "integer",
+                        "example": "354"
+                    },
+                    "account_number": {
+                        "title": "account_number",
+                        "description": "this is the bank account number",
+                        "type": "string",
+                        "example": "0066259148"
+                    },
+                    "account_name": {
+                        "title": "account_name",
+                        "description": "this is the code of your bank",
+                        "type": "string",
+                        "example": "FEYISOLA ADESANYA"
+                    }
+                },
+                "type": "object"
+            },
+            "MakePaymentRequestSchema": {
+                "title": "Make mobile payment request schema",
+                "description": "this schema is use to make payment request",
+                "required": [
+                    "service",
+                    "currency",
+                    "country",
+                    "ref_id",
+                    "amount",
+                    "msidn"
+                ],
+                "properties": {
+                    "service": {
+                        "title": "service",
+                        "description": "client_id of the service",
+                        "type": "string",
+                        "example": "client_id of the service"
+                    },
+                    "currency": {
+                        "title": "currency",
+                        "description": "currency give the currency code",
+                        "type": "string",
+                        "example": "xaf"
+                    },
+                    "country": {
+                        "title": "country",
+                        "description": "thisis the country code of the client",
+                        "type": "string",
+                        "example": "cmr"
+                    },
+                    "ref_id": {
+                        "title": "ref_id",
+                        "description": "this is the referrence of the id",
+                        "type": "string",
+                        "example": "qwe123asd123"
+                    },
+                    "amount": {
+                        "title": "amount",
+                        "description": "this is the amount",
+                        "type": "number",
+                        "format": "float",
+                        "example": "500"
+                    },
+                    "msidn": {
+                        "title": "msidn",
+                        "description": "this is the mobile number for the payment",
+                        "type": "string",
+                        "example": "+237680355391"
+                    }
+                },
+                "type": "object"
+            },
+            "MakePayoutRequestSchema": {
+                "title": "Make mobile payment request schema",
+                "description": "this schema is use to make payment request",
+                "required": [
+                    "service",
+                    "currency",
+                    "country",
+                    "ref_id",
+                    "amount",
+                    "msidn"
+                ],
+                "properties": {
+                    "service": {
+                        "title": "service",
+                        "description": "client_id of the service",
+                        "type": "string",
+                        "example": "client_id of the service"
+                    },
+                    "currency": {
+                        "title": "currency",
+                        "description": "currency give the currency code",
+                        "type": "string",
+                        "example": "xaf"
+                    },
+                    "country": {
+                        "title": "country",
+                        "description": "thisis the country code of the client",
+                        "type": "string",
+                        "example": "cmr"
+                    },
+                    "ref_id": {
+                        "title": "ref_id",
+                        "description": "this is the referrence of the id",
+                        "type": "string",
+                        "example": "qwe123asd123"
+                    },
+                    "amount": {
+                        "title": "amount",
+                        "description": "this is the amount",
+                        "type": "number",
+                        "format": "float",
+                        "example": "500"
+                    },
+                    "msidn": {
+                        "title": "msidn",
+                        "description": "this is the mobile number for the payment",
+                        "type": "string",
+                        "example": "+237680355391"
+                    }
+                },
+                "type": "object"
+            },
+            "BankCodeSchema": {
+                "title": "BankCode",
+                "description": "BankCode model",
+                "properties": {
+                    "code": {
+                        "title": "Code",
+                        "description": "bank code",
+                        "type": "integer",
+                        "format": "int64",
+                        "example": 125
+                    },
+                    "name": {
+                        "title": "Name",
+                        "description": "Name of the new bank",
+                        "type": "string",
+                        "example": "UBA"
+                    },
+                    "country": {
+                        "title": "country",
+                        "description": "country of bank",
+                        "type": "string",
+                        "example": "NGA"
+                    }
+                },
+                "type": "object",
+                "xml": {
+                    "name": "BankCode"
+                }
+            },
+            "CountrySchema": {
+                "title": "Country",
+                "description": "Country model",
+                "properties": {
+                    "id": {
+                        "title": "ID",
+                        "description": "ID",
+                        "type": "integer",
+                        "format": "int64",
+                        "example": 1
+                    },
+                    "name": {
+                        "title": "Name",
+                        "description": "Name of the new country",
+                        "type": "string",
+                        "example": "Cameroon"
+                    },
+                    "code": {
+                        "title": "Name",
+                        "description": "Name of the new project",
+                        "type": "string",
+                        "example": "cmr"
+                    }
+                },
+                "type": "object",
+                "xml": {
+                    "name": "Country"
+                }
+            },
+            "CurrencySchema": {
+                "title": "Currency",
+                "description": "Currency model",
+                "properties": {
+                    "id": {
+                        "title": "ID",
+                        "description": "ID",
+                        "type": "integer",
+                        "format": "int64",
+                        "example": 1
+                    },
+                    "name": {
+                        "title": "Name",
+                        "description": "Name of the new project",
+                        "type": "string",
+                        "example": "Franc CFA"
+                    },
+                    "code": {
+                        "title": "Name",
+                        "description": "Name of the new project",
+                        "type": "string",
+                        "example": "XAF"
+                    }
+                },
+                "type": "object",
+                "xml": {
+                    "name": "Currency"
+                }
+            },
+            "PaymentResponse": {
+                "title": "Project",
+                "description": "Project model",
+                "properties": {
+                    "id": {
+                        "title": "ID",
+                        "description": "ID",
+                        "type": "integer",
+                        "format": "int64",
+                        "example": 1
+                    },
+                    "name": {
+                        "title": "Name",
+                        "description": "Name of the new project",
+                        "type": "string",
+                        "example": "A nice project"
+                    },
+                    "description": {
+                        "title": "Description",
+                        "description": "Description of the new project",
+                        "type": "string",
+                        "example": "This is new project's description"
+                    },
+                    "created_at": {
+                        "title": "Created at",
+                        "description": "Created at",
+                        "type": "string",
+                        "format": "datetime",
+                        "example": "2020-01-27 17:50:45"
+                    },
+                    "updated_at": {
+                        "title": "Updated at",
+                        "description": "Updated at",
+                        "type": "string",
+                        "format": "datetime",
+                        "example": "2020-01-27 17:50:45"
+                    },
+                    "deleted_at": {
+                        "title": "Deleted at",
+                        "description": "Deleted at",
+                        "type": "string",
+                        "format": "datetime",
+                        "example": "2020-01-27 17:50:45"
+                    },
+                    "author_id": {
+                        "title": "Author ID",
+                        "description": "Author's id of the new project",
+                        "type": "integer",
+                        "format": "int64",
+                        "example": 1
+                    },
+                    "author": {
+                        "title": "Author",
+                        "description": "Project author's user model"
+                    }
+                },
+                "type": "object",
+                "xml": {
+                    "name": "Project"
+                }
+            },
+            "TransactionSchema": {
+                "title": "Transaction",
+                "description": "Transaction model",
+                "properties": {
+                    "transaction_id": {
+                        "title": "transaction_id",
+                        "description": "Transaction Id",
+                        "type": "integer",
+                        "example": "521"
+                    },
+                    "wallet": {
+                        "title": "Wallet",
+                        "description": "this is the currency of the wallet",
+                        "type": "string",
+                        "example": "XAF"
+                    },
+                    "ref_id": {
+                        "title": "ref_id",
+                        "description": "ref_id",
+                        "type": "string",
+                        "example": "qwertyaev123v11"
+                    },
+                    "amount": {
+                        "title": "amount",
+                        "description": "amount",
+                        "type": "number",
+                        "format": "double",
+                        "example": "500"
+                    },
+                    "source": {
+                        "title": "source",
+                        "description": "source",
+                        "type": "string",
+                        "example": "[ 'msidn': '+237680355391','name': 'unknown']"
+                    },
+                    "created_at": {
+                        "title": "created_at",
+                        "description": "created_at",
+                        "type": "string",
+                        "format": "date-time",
+                        "example": "2023-11-23T11:58:22.000000Z"
+                    }
+                },
+                "type": "object",
+                "xml": {
+                    "name": "Transaction"
+                }
+            },
+            "WalletSchema": {
+                "title": "Wallet",
+                "description": "Wallet model",
+                "properties": {
+                    "balance": {
+                        "title": "Balance",
+                        "description": "Wallet Balance",
+                        "type": "number",
+                        "format": "double",
+                        "example": "500"
+                    },
+                    "currency": {
+                        "title": "Currency",
+                        "description": "wallet currency",
+                        "type": "string",
+                        "example": "XAF"
+                    }
+                },
+                "type": "object",
+                "xml": {
+                    "name": "Wallet"
+                }
+            },
+            "AppTransactionResponseResource": {
+                "title": "AppTransactionResponseResource",
+                "description": "App Transaction Response Resource this is what you will get as reponse when you make request to have all transaction associated with the app",
+                "properties": {
+                    "success": {
+                        "title": "success",
+                        "description": "status of your request",
+                        "type": "boolean",
+                        "example": true
+                    },
+                    "message": {
+                        "title": "message",
+                        "description": "message for the request",
+                        "type": "string",
+                        "example": "countries retrieves successfully"
+                    },
+                    "data": {
+                        "title": "data",
+                        "description": "this is the data",
+                        "type": "array",
+                        "items": {
+                            "$ref": "#/components/schemas/TransactionSchema"
+                        }
+                    }
+                },
+                "type": "object",
+                "xml": {
+                    "name": "AppTransactionResponseResource"
+                }
+            },
+            "AppWalletResponseResource": {
+                "title": "AppWalletResponseResource",
+                "description": "App Wallet Response Resource this is what you will get as reponse when you make request to have all wallet associated with the app",
+                "properties": {
+                    "success": {
+                        "title": "success",
+                        "description": "status of your request",
+                        "type": "boolean",
+                        "example": true
+                    },
+                    "message": {
+                        "title": "message",
+                        "description": "message for the request",
+                        "type": "string",
+                        "example": "countries retrieves successfully"
+                    },
+                    "data": {
+                        "title": "data",
+                        "description": "this is the data",
+                        "type": "array",
+                        "items": {
+                            "$ref": "#/components/schemas/WalletSchema"
+                        }
+                    }
+                },
+                "type": "object",
+                "xml": {
+                    "name": "AppWalletResponseResource"
+                }
+            },
+            "BankCodeResponseResource": {
+                "title": "BankCodeResponseResource",
+                "description": "App Bank code Response Resource this is what you will get as reponse when you make request to have all bank associated with the currency",
+                "properties": {
+                    "success": {
+                        "title": "success",
+                        "description": "status of your request",
+                        "type": "boolean",
+                        "example": true
+                    },
+                    "message": {
+                        "title": "message",
+                        "description": "message for the request",
+                        "type": "string",
+                        "example": "countries retrieves successfully"
+                    },
+                    "data": {
+                        "title": "data",
+                        "description": "this is the data",
+                        "type": "array",
+                        "items": {
+                            "$ref": "#/components/schemas/BankCodeSchema"
+                        }
+                    }
+                },
+                "type": "object",
+                "xml": {
+                    "name": "BankCodeResponseResource"
+                }
+            },
+            "BankPaymentResponseResource": {
+                "title": "BankPaymentResponseResource",
+                "description": "Bank Payment Response Resource this is what you will get as reponse when you make payment request",
+                "properties": {
+                    "payment_link": {
+                        "title": "payment_link",
+                        "description": "payment link of the transaction",
+                        "type": "string",
+                        "example": "http://pay.startbutton.builditdigital.co.s3-website-eu-west-1.amazonaws.com/#/uswfao9b4v"
+                    },
+                    "pay_token": {
+                        "title": "pay_token",
+                        "description": "pay_token of the transaction",
+                        "type": "string",
+                        "example": "qwe741wedd25514"
+                    },
+                    "amount": {
+                        "title": "amount",
+                        "description": "the amount of the transaction",
+                        "type": "number",
+                        "format": "float",
+                        "example": "500"
+                    },
+                    "ref_id": {
+                        "title": "ref_id",
+                        "description": "this is the referrence of the id",
+                        "type": "string",
+                        "example": "qwe123asd123"
+                    },
+                    "payment_method": {
+                        "title": "payment_method",
+                        "description": "this is the operator of the request given to you when you made a request",
+                        "type": "string",
+                        "example": "toupesu_mobile"
+                    },
+                    "status": {
+                        "title": "",
+                        "description": "thi is the status of the request",
+                        "type": "string",
+                        "example": "CREATED"
+                    },
+                    "success": {
+                        "title": "success",
+                        "description": "this is a flag to know if the request work well",
+                        "type": "boolean",
+                        "example": true
+                    }
+                },
+                "type": "object",
+                "xml": {
+                    "name": "BankPaymentResponseResource"
+                }
+            },
+            "CountryResponseResource": {
+                "title": "CountryResponseResource",
+                "description": "Response given for when countries are requested",
+                "properties": {
+                    "success": {
+                        "title": "success",
+                        "description": "status of your request",
+                        "type": "boolean",
+                        "example": true
+                    },
+                    "message": {
+                        "title": "message",
+                        "description": "message for the request",
+                        "type": "string",
+                        "example": "countries retrieves successfully"
+                    },
+                    "data": {
+                        "title": "data",
+                        "description": "this is the data",
+                        "type": "array",
+                        "items": {
+                            "$ref": "#/components/schemas/CountrySchema"
+                        }
+                    }
+                },
+                "type": "object",
+                "xml": {
+                    "name": "CountryResponseResource"
+                }
+            },
+            "CurrencyResponseResource": {
+                "title": "CurrencyResponseResource",
+                "description": "Response given for when currencies are requested",
+                "properties": {
+                    "success": {
+                        "title": "success",
+                        "description": "status of your request",
+                        "type": "boolean",
+                        "example": true
+                    },
+                    "message": {
+                        "title": "message",
+                        "description": "message for the request",
+                        "type": "string",
+                        "example": "currencies retrieves successfully"
+                    },
+                    "data": {
+                        "title": "data",
+                        "description": "this is the data",
+                        "type": "array",
+                        "items": {
+                            "$ref": "#/components/schemas/CurrencySchema"
+                        }
+                    }
+                },
+                "type": "object",
+                "xml": {
+                    "name": "CurrencyResponseResource"
+                }
+            },
+            "PaymentResponseResource": {
+                "title": "MobilePaymentResponseResource",
+                "description": "Mobile Payment Response Resource this is what you will get as reponse when you make payment request",
+                "properties": {
+                    "pay_token": {
+                        "title": "pay_token",
+                        "description": "pay_token of the transaction",
+                        "type": "string",
+                        "example": "qwe741wedd25514"
+                    },
+                    "amount": {
+                        "title": "amount",
+                        "description": "the amount of the transaction",
+                        "type": "number",
+                        "format": "float",
+                        "example": "500"
+                    },
+                    "ref_id": {
+                        "title": "ref_id",
+                        "description": "this is the referrence of the id",
+                        "type": "string",
+                        "example": "qwe123asd123"
+                    },
+                    "payment_method": {
+                        "title": "payment_method",
+                        "description": "this is the operator of the request given to you when you made a request",
+                        "type": "string",
+                        "example": "toupesu_mobile"
+                    },
+                    "status": {
+                        "title": "",
+                        "description": "thi is the status of the request",
+                        "type": "string",
+                        "example": "CREATED"
+                    },
+                    "success": {
+                        "title": "success",
+                        "description": "this is a flag to know if the request work well",
+                        "type": "boolean",
+                        "example": true
+                    }
+                },
+                "type": "object",
+                "xml": {
+                    "name": "Mobile PaymentResponseResource"
+                }
+            },
+            "VerifyAccountResponseResource": {
+                "title": "VerifyAccountResponseResource",
+                "description": "Mobile Payment Response Resource this is what you will get as reponse when you make payment request",
+                "properties": {
+                    "message": {
+                        "title": "message",
+                        "description": "this give you information that account is available or not",
+                        "type": "string",
+                        "example": "Account available"
+                    },
+                    "success": {
+                        "title": "success",
+                        "description": "this is a flag to know if the request work well",
+                        "type": "boolean",
+                        "example": true
+                    }
+                },
+                "type": "object",
+                "xml": {
+                    "name": "VerifyAccountResponseResource"
+                }
+            },
+            "VerifyAccountRequestSchema": {
+                "title": "Verify account request schema",
+                "description": "this schema is use to check a bank account is valid",
+                "required": [
+                    "account_number",
+                    "account_name",
+                    "bank_code"
+                ],
+                "properties": {
+                    "bank_code": {
+                        "title": "bank_code",
+                        "description": "this is the code of your bank",
+                        "type": "integer",
+                        "example": "354"
+                    },
+                    "account_number": {
+                        "title": "account_number",
+                        "description": "this is the bank account number",
+                        "type": "string",
+                        "example": "0066259148"
+                    },
+                    "account_name": {
+                        "title": "account_name",
+                        "description": "this is the code of your bank",
+                        "type": "string",
+                        "example": "FEYISOLA ADESANYA"
+                    }
+                },
+                "type": "object"
+            }
+        },
+        "securitySchemes": {
+            "bearerAuth": {
+                "type": "http",
+                "scheme": "bearer"
+            }
+        }
+    }
+}

@@ -1,0 +1,11 @@
+<!-- Name Field -->
+<div class="form-group col-sm-6">
+    {!! Form::label('name', 'Name:') !!}
+    {!! Form::text('name', null, ['class' => 'form-control', 'required']) !!}
+</div>
+
+<!-- Code Field -->
+<div class="form-group col-sm-6">
+    {!! Form::label('decimals', 'Decimal:') !!}
+    {!! Form::number('decimals', null, ['class' => 'form-control', 'required']) !!}
+</div>

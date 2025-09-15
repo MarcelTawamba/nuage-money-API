@@ -6,7 +6,7 @@ WORKDIR /app
 # Copy only necessary files to leverage Docker cache
 COPY database/ database/
 COPY composer.json composer.lock ./
-RUN composer install --no-interaction --no-plugins --no-scripts --no-dev --prefer-dist
+RUN composer install --no-interaction --no-plugins --no-scripts --no-dev --prefer-dist --ignore-platform-reqs
 
 
 # ---- Final Production Image ----

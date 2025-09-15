@@ -1,59 +1,41 @@
-# Multi stage docker file for the Attendize application layer images
+# ---- Builder Stage ----
+# 1. Install composer dependencies
+FROM composer:2 as builder
 
-# Base image with nginx, php-fpm and composer built on debian
-FROM wyveo/nginx-php-fpm:php81 as base
-
-# Fix GPG key issues and install dependencies
-RUN apt-get update && apt-get install -y curl gnupg ca-certificates lsb-release
-
-# Configure Sury PHP repository
-RUN curl -sSLo /usr/share/keyrings/deb.sury.org-archive-keyring.gpg https://packages.sury.org/php/apt.gpg
-RUN echo "deb [signed-by=/usr/share/keyrings/deb.sury.org-archive-keyring.gpg] https://packages.sury.org/php/ $(lsb_release -sc) main" > /etc/apt/sources.list.d/php.list
-
-# Configure Nginx repository
-RUN curl -fsSL https://nginx.org/keys/nginx_signing.key | gpg --dearmor -o /usr/share/keyrings/nginx-archive-keyring.gpg
-RUN echo "deb [signed-by=/usr/share/keyrings/nginx-archive-keyring.gpg] http://nginx.org/packages/mainline/debian $(lsb_release -sc) nginx" > /etc/apt/sources.list.d/nginx.list
-
-# Update package lists and install dependencies
-RUN apt-get update && \
-    apt-get install -y wait-for-it libxrender1 && \
-    docker-php-ext-install mysqli pdo pdo_mysql
+WORKDIR /app
+# Copy only necessary files to leverage Docker cache
+COPY database/ database/
+COPY composer.json composer.lock ./
+RUN composer install --no-interaction --no-plugins --no-scripts --no-dev --prefer-dist
 
 
-# added by christian base on link https://stackoverflow.com/questions/56759646/docker-laravel-mysql-could-not-find-driver to fix issuer with "Could not find driver"
-# RUN docker-php-ext-install mysqli pdo pdo_mysql
+# ---- Final Production Image ----
+FROM php:8.1-fpm-alpine
 
-# Set up code
-WORKDIR /usr/share/nginx/html
+# Install Nginx, Supervisor, and other system packages
+RUN apk add --no-cache nginx supervisor
+
+# Install required PHP extensions
+RUN docker-php-ext-install pdo pdo_mysql mysqli zip exif pcntl
+
+# Set working directory
+WORKDIR /var/www/html
+
+# Copy application code and dependencies
 COPY . .
+COPY --from=builder /app/vendor/ /var/www/html/vendor/
 
-# run composer, chmod files, setup laravel key
-RUN ./scripts/setup
+# Set correct permissions for storage and bootstrap/cache
+RUN chown -R www-data:www-data /var/www/html/storage /var/www/html/bootstrap/cache && \
+    chmod -R 775 /var/www/html/storage /var/www/html/bootstrap/cache
 
-# The worker container runs the laravel queue in the background
-FROM base as worker
+# Copy service configurations into the image
+COPY docker/nginx.conf /etc/nginx/nginx.conf
+COPY docker/supervisord.conf /etc/supervisord.conf
 
-CMD ["php", "artisan", "queue:work", "--daemon"]
-
-# The web container runs the HTTP server and connects to all other services in the application stack
-FROM base as web
-
-# nginx config
-COPY nginx.conf /etc/nginx/conf.d/default.conf
-
-# self-signed ssl certificate for https support
-RUN openssl req -x509 -nodes -days 365 -newkey rsa:2048 -keyout /etc/ssl/private/nginx-selfsigned.key -out /etc/ssl/certs/nginx-selfsigned.crt -subj "/C=GB/ST=London/L=London/O=NA/CN=localhost" \
-    && openssl dhparam -out /etc/ssl/certs/dhparam.pem 2048 \
-    && mkdir /etc/nginx/snippets
-COPY self-signed.conf /etc/nginx/snippets/self-signed.conf
-COPY ssl-params.conf /etc/nginx/snippets/ssl-params.conf
-
-# Ports to expose
+# Expose port 80 for Nginx
 EXPOSE 80
-EXPOSE 443
 
-# Starting nginx server
-CMD ["/start.sh"]
+# Start supervisor to manage Nginx and PHP-FPM
+CMD ["/usr/bin/supervisord", "-c", "/etc/supervisord.conf"]
 
-# NOTE: if you are deploying to production with this image, you should extend this Dockerfile with another stage that
-# performs clean up (i.e. removing composer) and installs your own dependencies (i.e. your own ssl certificate).

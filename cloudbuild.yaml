@@ -45,3 +45,7 @@ substitutions:
 # Store the built image in Artifact Registry
 images:
   - '${_LOCATION}-docker.pkg.dev/${PROJECT_ID}/${_REPOSITORY}/${_IMAGE_NAME}:latest'
+
+# Specify logging behavior
+options:
+  logging: CLOUD_LOGGING_ONLY

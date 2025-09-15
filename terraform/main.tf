@@ -207,6 +207,13 @@ resource "google_project_iam_member" "sql_client" {
   member  = "serviceAccount:${google_service_account.service_account.email}"
 }
 
+# Grant the service account the Logs Writer role to allow application logging
+resource "google_project_iam_member" "logs_writer" {
+  project = var.project_id
+  role    = "roles/logging.logWriter"
+  member  = "serviceAccount:${google_service_account.service_account.email}"
+}
+
 # Grant the service account access to each of the secrets
 resource "google_secret_manager_secret_iam_member" "secret_accessor" {
   for_each  = google_secret_manager_secret.secrets

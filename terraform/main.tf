@@ -226,11 +226,26 @@ resource "google_secret_manager_secret_iam_member" "secret_accessor" {
   member    = "serviceAccount:${google_service_account.service_account.email}"
 }
 
-# Grant the default Cloud Build service account permission to write to Artifact Registry
-resource "google_project_iam_member" "cloud_build_artifact_writer" {
+# Grant the application's service account permission to write to Artifact Registry
+# This is needed because the Cloud Build trigger is configured to run as this SA.
+resource "google_project_iam_member" "app_sa_artifact_writer" {
   project = var.project_id
   role    = "roles/artifactregistry.writer"
-  member  = "serviceAccount:${data.google_project.project.number}@cloudbuild.gserviceaccount.com"
+  member  = "serviceAccount:${google_service_account.service_account.email}"
+}
+
+# Grant the app service account permission to manage Cloud Run services
+resource "google_project_iam_member" "run_admin" {
+  project = var.project_id
+  role    = "roles/run.admin"
+  member  = "serviceAccount:${google_service_account.service_account.email}"
+}
+
+# Grant the app service account permission to act as itself (for deploying Cloud Run)
+resource "google_project_iam_member" "service_account_user" {
+  project = var.project_id
+  role    = "roles/iam.serviceAccountUser"
+  member  = "serviceAccount:${google_service_account.service_account.email}"
 }
 
 
@@ -273,7 +288,7 @@ resource "google_cloud_run_v2_service" "web" {
       image = "${var.region}-docker.pkg.dev/${var.project_id}/${google_artifact_registry_repository.repository.repository_id}/nuage-money-api:latest"
       
       ports {
-        container_port = 8000
+        container_port = 80
       }
 
       env {

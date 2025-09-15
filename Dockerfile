@@ -4,13 +4,21 @@
 FROM wyveo/nginx-php-fpm:php81 as base
 
 # Fix GPG key issues and install dependencies
+RUN apt-get update && apt-get install -y curl gnupg ca-certificates lsb-release
+
+# Configure Sury PHP repository
+RUN curl -sSLo /usr/share/keyrings/deb.sury.org-archive-keyring.gpg https://packages.sury.org/php/apt.gpg
+RUN echo "deb [signed-by=/usr/share/keyrings/deb.sury.org-archive-keyring.gpg] https://packages.sury.org/php/ $(lsb_release -sc) main" > /etc/apt/sources.list.d/php.list
+
+# Configure Nginx repository
+RUN curl -fsSL https://nginx.org/keys/nginx_signing.key | gpg --dearmor -o /usr/share/keyrings/nginx-archive-keyring.gpg
+RUN echo "deb [signed-by=/usr/share/keyrings/nginx-archive-keyring.gpg] http://nginx.org/packages/mainline/debian $(lsb_release -sc) nginx" > /etc/apt/sources.list.d/nginx.list
+
+# Update package lists and install dependencies
 RUN apt-get update && \
-    apt-get install -y gnupg curl && \
-    curl -sSL https://packages.sury.org/php/apt.gpg | apt-key add - && \
-    curl -sSL https://nginx.org/keys/nginx_signing.key | apt-key add - && \
-    apt-get update && \
     apt-get install -y wait-for-it libxrender1 && \
     docker-php-ext-install mysqli pdo pdo_mysql
+
 
 # added by christian base on link https://stackoverflow.com/questions/56759646/docker-laravel-mysql-could-not-find-driver to fix issuer with "Could not find driver"
 # RUN docker-php-ext-install mysqli pdo pdo_mysql

@@ -12,6 +12,9 @@ provider "google" {
   region  = var.region
 }
 
+# Read project details, like the project number
+data "google_project" "project" {}
+
 variable "project_id" {
   description = "The GCP project ID to deploy to."
   type        = string
@@ -222,6 +225,14 @@ resource "google_secret_manager_secret_iam_member" "secret_accessor" {
   role      = "roles/secretmanager.secretAccessor"
   member    = "serviceAccount:${google_service_account.service_account.email}"
 }
+
+# Grant the default Cloud Build service account permission to write to Artifact Registry
+resource "google_project_iam_member" "cloud_build_artifact_writer" {
+  project = var.project_id
+  role    = "roles/artifactregistry.writer"
+  member  = "serviceAccount:${data.google_project.project.number}@cloudbuild.gserviceaccount.com"
+}
+
 
 # --- Compute & Deployment ---
 

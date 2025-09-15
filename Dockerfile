@@ -2,8 +2,13 @@
 
 # Base image with nginx, php-fpm and composer built on debian
 FROM wyveo/nginx-php-fpm:php81 as base
-RUN apt-get update && apt-get install -y wait-for-it libxrender1 \
-    && docker-php-ext-install mysqli pdo pdo_mysql
+RUN apt-get update && 
+    apt-get install -y gnupg curl && 
+    curl -sSL https://packages.sury.org/php/apt.gpg | apt-key add - && 
+    curl -sSL https://nginx.org/keys/nginx_signing.key | apt-key add - && 
+    apt-get update && 
+    apt-get install -y wait-for-it libxrender1 && 
+    docker-php-ext-install mysqli pdo pdo_mysql
 
 # added by christian base on link https://stackoverflow.com/questions/56759646/docker-laravel-mysql-could-not-find-driver to fix issuer with "Could not find driver"
 # RUN docker-php-ext-install mysqli pdo pdo_mysql

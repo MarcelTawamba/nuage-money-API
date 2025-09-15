@@ -16,12 +16,8 @@ steps:
     id: 'Push'
 
   # 3. Deploy to Cloud Run
-  - name: 'gcr.io/google-appengine/exec-wrapper'
+  - name: 'gcr.io/cloud-builders/gcloud'
     args:
-      - '-i'
-      - '${_LOCATION}-docker.pkg.dev/${PROJECT_ID}/${_REPOSITORY}/${_IMAGE_NAME}:latest'
-      - '--'
-      - 'gcloud'
       - 'run'
       - 'services'
       - 'update'

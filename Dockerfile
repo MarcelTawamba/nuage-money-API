@@ -15,8 +15,10 @@ FROM php:8.1-fpm-alpine
 # Install Nginx, Supervisor, and other system packages
 RUN apk add --no-cache nginx supervisor
 
-# Install required PHP extensions
-RUN docker-php-ext-install pdo pdo_mysql mysqli zip exif pcntl
+# Install required PHP extensions and their system dependencies
+RUN apk add --no-cache --virtual .build-deps $PHPIZE_DEPS libzip-dev \
+    && docker-php-ext-install pdo pdo_mysql mysqli zip exif pcntl \
+    && apk del .build-deps
 
 # Set working directory
 WORKDIR /var/www/html

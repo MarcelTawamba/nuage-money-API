@@ -76,6 +76,7 @@ resource "google_sql_database_instance" "instance" {
   name                = "nuage-money-api-dev-db"
   database_version    = "MYSQL_8_0"
   region              = var.region
+  deletion_protection = false
 
   settings {
     tier = "db-n1-standard-1" # A small, cost-effective tier for dev

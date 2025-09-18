@@ -18,6 +18,12 @@ use Illuminate\Support\Facades\Route;
 
 Route::post('startbutton-callback', [\App\Http\Controllers\API\StartButtonWebHookController::class, 'handleWebhook']);
 
+Route::group(['prefix' => 'rehive'], function () {
+    Route::post('activate', [\App\Http\Controllers\API\RehiveWebhookController::class, 'activate']);
+    Route::post('deactivate', [\App\Http\Controllers\API\RehiveWebhookController::class, 'deactivate']);
+    Route::post('webhook', [\App\Http\Controllers\API\RehiveWebhookController::class, 'webhook']);
+});
+
 
 Route::middleware("localization")->group(function () {
 //    Route::get("me",[App\Http\Controllers\API\UserAPIController::class,"show"])->middleware('auth:api');

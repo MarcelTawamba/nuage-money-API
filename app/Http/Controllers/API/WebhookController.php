@@ -10,6 +10,7 @@ use Illuminate\Support\Facades\Http;
 use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\Validator;
 use Illuminate\Http\Client\Response;
+use Illuminate\Support\Str;
 
 class WebhookController extends Controller
 {
@@ -31,6 +32,7 @@ class WebhookController extends Controller
         }
 
         $serviceToken = $request->input('service_token');
+        Log::info('Activate request received with token: ' . $serviceToken);
 
         try {
             $response = $this->validateRehiveToken($serviceToken);
@@ -44,7 +46,7 @@ class WebhookController extends Controller
             }
 
             $company = $response->json('data.company');
-            $webhook_secret = \Illuminate\Support\Str::random(32);
+            $webhook_secret = Str::random(32);
 
             ServiceToken::updateOrCreate(
                 ['company' => $company],

@@ -3,7 +3,7 @@
 namespace App\Http\Controllers\API;
 
 use App\Http\Controllers\Controller;
-use App\Models\RehiveServiceToken;
+use App\Models\ServiceToken;
 use App\Services\RehiveOfframpService;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Http;
@@ -11,7 +11,7 @@ use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\Validator;
 use Illuminate\Http\Client\Response;
 
-class RehiveWebhookController extends Controller
+class WebhookController extends Controller
 {
     private function validateRehiveToken(string $token): Response
     {
@@ -46,7 +46,7 @@ class RehiveWebhookController extends Controller
             $company = $response->json('data.company');
             $webhook_secret = \Illuminate\Support\Str::random(32);
 
-            RehiveServiceToken::updateOrCreate(
+            ServiceToken::updateOrCreate(
                 ['company' => $company],
                 [
                     'token' => $serviceToken,
@@ -87,7 +87,7 @@ class RehiveWebhookController extends Controller
                 return response()->json(['status' => 'error', 'message' => 'Invalid service token'], 401);
             }
 
-            $rehiveServiceToken = RehiveServiceToken::where('token', $token)->first();
+            $rehiveServiceToken = ServiceToken::where('token', $token)->first();
 
             if (!$rehiveServiceToken) {
                 return response()->json(['status' => 'error', 'message' => 'Token not found'], 404);
@@ -131,7 +131,7 @@ class RehiveWebhookController extends Controller
 
             $company = $response->json('data.company');
 
-            $rehiveServiceToken = RehiveServiceToken::where('company', $company)->first();
+            $rehiveServiceToken = ServiceToken::where('company', $company)->first();
 
             if (!$rehiveServiceToken) {
                 return response()->json(['status' => 'error', 'message' => 'Company not found'], 404);
@@ -155,7 +155,7 @@ class RehiveWebhookController extends Controller
             return response()->json(['status' => 'error', 'message' => 'Missing company or signature'], 400);
         }
 
-        $rehiveServiceToken = RehiveServiceToken::where('company', $companyIdentifier)->first();
+        $rehiveServiceToken = ServiceToken::where('company', $companyIdentifier)->first();
 
         if (!$rehiveServiceToken || !$rehiveServiceToken->activated) {
             return response()->json(['status' => 'error', 'message' => 'Company not found or not activated'], 404);

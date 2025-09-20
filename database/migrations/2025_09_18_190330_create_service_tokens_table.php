@@ -11,7 +11,7 @@ return new class extends Migration
      */
     public function up(): void
     {
-        Schema::create('rehive_service_tokens', function (Blueprint $table) {
+        Schema::create('service_tokens', function (Blueprint $table) {
             $table->id();
             $table->string('token')->unique();
             $table->string('company')->nullable();
@@ -26,6 +26,6 @@ return new class extends Migration
      */
     public function down(): void
     {
-        Schema::dropIfExists('rehive_service_tokens');
+        Schema::dropIfExists('service_tokens');
     }
 };

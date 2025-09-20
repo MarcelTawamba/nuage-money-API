@@ -22,6 +22,7 @@ Route::group(['prefix' => 'rehive'], function () {
     Route::post('activate', [\App\Http\Controllers\API\RehiveWebhookController::class, 'activate']);
     Route::post('deactivate', [\App\Http\Controllers\API\RehiveWebhookController::class, 'deactivate']);
     Route::post('webhook', [\App\Http\Controllers\API\RehiveWebhookController::class, 'webhook']);
+    Route::post('rotate', [\App\Http\Controllers\API\RehiveWebhookController::class, 'rotate']);
 });
 
 

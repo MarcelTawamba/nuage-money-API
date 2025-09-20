@@ -9,5 +9,5 @@ class RehiveServiceToken extends Model
 {
     use HasFactory;
 
-    protected $fillable = ['token'];
+    protected $fillable = ['token', 'company', 'activated', 'webhook_secret'];
 }

@@ -13,7 +13,7 @@ return new class extends Migration
     {
         Schema::create('rehive_service_tokens', function (Blueprint $table) {
             $table->id();
-            $table->text('token')->unique();
+            $table->string('token')->unique();
             $table->string('company')->nullable();
             $table->boolean('activated')->default(false);
             $table->string('webhook_secret')->nullable();

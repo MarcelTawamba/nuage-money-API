@@ -11,21 +11,46 @@ use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\Validator;
 use Illuminate\Http\Client\Response;
 use Illuminate\Support\Str;
+use Illuminate\Validation\ValidationException;
+use Illuminate\Http\Client\RequestException;
+use Exception;
+use \App\Jobs\ProcessRehiveWebhook;
 
 class WebhookController extends Controller
 {
-    private function validateRehiveToken(string $token): Response
+    private const REHIVE_API_BASE_URL = 'https://api.rehive.com/3';
+    private const REHIVE_AUTH_URL = self::REHIVE_API_BASE_URL . '/auth/';
+    private const REHIVE_COMPANY_URL = self::REHIVE_API_BASE_URL . '/company/';
+    private const REHIVE_SIGNATURE_HEADER = 'X-Rehive-Signature';
+    
+    private function validateRequestAndGetToken(Request $request): string
     {
-        return Http::withHeaders([
+        $validator = Validator::make($request->all(), [
+            'token' => 'required|string',
+        ]);
+
+        if ($validator->fails()) {
+            throw new ValidationException($validator);
+        }
+
+        $token = $request->input('token');
+
+        $response = Http::withHeaders([
             'Authorization' => 'Token ' . $token,
-        ])->get('https://api.rehive.com/3/auth/');
+        ])->get(self::REHIVE_AUTH_URL);
+
+        if ($response->failed()) {
+            throw new RequestException($response);
+        }
+
+        return $token;
     }
 
     private function getRehiveCompanyName(string $token): ?string
     {
         $response = Http::withHeaders([
             'Authorization' => 'Token ' . $token,
-        ])->get('https://api.rehive.com/3/company/');
+        ])->get(self::REHIVE_COMPANY_URL);
 
         if ($response->successful()) {
             return $response->json('data.name');
@@ -41,28 +66,8 @@ class WebhookController extends Controller
 
     public function activate(Request $request)
     {
-        $validator = Validator::make($request->all(), [
-            'service_token' => 'required|string',
-        ]);
-
-        if ($validator->fails()) {
-            return response()->json($validator->errors(), 400);
-        }
-
-        $serviceToken = $request->input('service_token');
-        Log::info('Activate request received with token: ' . $serviceToken);
-
         try {
-            $response = $this->validateRehiveToken($serviceToken);
-
-            if ($response->failed()) {
-                Log::error('Rehive service token validation failed', [
-                    'status' => $response->status(),
-                    'body' => $response->body(),
-                ]);
-                return response()->json(['status' => 'error', 'message' => 'Invalid service token'], 401);
-            }
-
+            $serviceToken = $this->validateRequestAndGetToken($request);
             $company = $this->getRehiveCompanyName($serviceToken);
 
             if (is_null($company)) {
@@ -82,7 +87,16 @@ class WebhookController extends Controller
             );
 
             return response()->json(['status' => 'success', 'secret' => $webhook_secret]);
-        } catch (\Exception $e) {
+        } catch (ValidationException $e) {
+            return response()->json(['status' => 'error', 'message' => $e->getMessage(), 'errors' => $e->errors()], 422);
+        } catch (RequestException $e) {
+            return response()->json([
+                'status' => 'error',
+                'message' => 'Rehive service token validation failed',
+                'rehive_status' => $e->response->status(),
+                'rehive_body' => $e->response->json()
+            ], 401);
+        } catch (Exception $e) {
             Log::error('Error activating Rehive service: ' . $e->getMessage());
             return response()->json(['status' => 'error', 'message' => 'Internal Server Error'], 500);
         }
@@ -90,30 +104,12 @@ class WebhookController extends Controller
 
     public function deactivate(Request $request)
     {
-        $validator = Validator::make($request->all(), [
-            'token' => 'required|string',
-            'purge' => 'boolean',
-        ]);
-
-        if ($validator->fails()) {
-            return response()->json($validator->errors(), 400);
-        }
-
-        $token = $request->input('token');
-        $purge = $request->input('purge', false);
+        $purge = false;
 
         try {
-            $response = $this->validateRehiveToken($token);
-
-            if ($response->failed()) {
-                Log::error('Rehive service token validation failed', [
-                    'status' => $response->status(),
-                    'body' => $response->body(),
-                ]);
-                return response()->json(['status' => 'error', 'message' => 'Invalid service token'], 401);
-            }
-
-            $rehiveServiceToken = ServiceToken::where('token', $token)->first();
+            $token = $this->validateRequestAndGetToken($request);
+            $company = $this->getRehiveCompanyName($token);
+            $rehiveServiceToken = ServiceToken::where('company', $company)->first();
 
             if (!$rehiveServiceToken) {
                 return response()->json(['status' => 'error', 'message' => 'Token not found'], 404);
@@ -126,7 +122,16 @@ class WebhookController extends Controller
             }
 
             return response()->json(['status' => 'success']);
-        } catch (\Exception $e) {
+        } catch (ValidationException $e) {
+            return response()->json(['status' => 'error', 'message' => $e->getMessage(), 'errors' => $e->errors()], 422);
+        } catch (RequestException $e) {
+            return response()->json([
+                'status' => 'error',
+                'message' => 'Rehive service token validation failed',
+                'rehive_status' => $e->response->status(),
+                'rehive_body' => $e->response->json()
+            ], 401);
+        } catch (Exception $e) {
             Log::error('Error deactivating Rehive service: ' . $e->getMessage());
             return response()->json(['status' => 'error', 'message' => 'Internal Server Error'], 500);
         }
@@ -134,28 +139,9 @@ class WebhookController extends Controller
 
     public function rotate(Request $request)
     {
-        $validator = Validator::make($request->all(), [
-            'token' => 'required|string',
-        ]);
-
-        if ($validator->fails()) {
-            return response()->json($validator->errors(), 400);
-        }
-
-        $newToken = $request->input('token');
-
         try {
-            $response = $this->validateRehiveToken($newToken);
-
-            if ($response->failed()) {
-                Log::error('Rehive service token validation failed', [
-                    'status' => $response->status(),
-                    'body' => $response->body(),
-                ]);
-                return response()->json(['status' => 'error', 'message' => 'Invalid service token'], 401);
-            }
-
-            $company = $response->json('data.company');
+            $newToken = $this->validateRequestAndGetToken($request);
+            $company = $this->getRehiveCompanyName($newToken);
 
             $rehiveServiceToken = ServiceToken::where('company', $company)->first();
 
@@ -166,7 +152,16 @@ class WebhookController extends Controller
             $rehiveServiceToken->update(['token' => $newToken]);
 
             return response()->json(['status' => 'success']);
-        } catch (\Exception $e) {
+        } catch (ValidationException $e) {
+            return response()->json(['status' => 'error', 'message' => $e->getMessage(), 'errors' => $e->errors()], 422);
+        } catch (RequestException $e) {
+            return response()->json([
+                'status' => 'error',
+                'message' => 'Rehive service token validation failed',
+                'rehive_status' => $e->response->status(),
+                'rehive_body' => $e->response->json()
+            ], 401);
+        } catch (Exception $e) {
             Log::error('Error rotating Rehive service token: ' . $e->getMessage());
             return response()->json(['status' => 'error', 'message' => 'Internal Server Error'], 500);
         }
@@ -174,26 +169,45 @@ class WebhookController extends Controller
 
     public function webhook(Request $request)
     {
-        $companyIdentifier = $request->input('company');
-        $secret = $request->header('X-Rehive-Signature');
+        try {
+            $token = $this->validateRequestAndGetToken($request);
+            $companyIdentifier = $this->getRehiveCompanyName($token);
+            $secret = $request->header(self::REHIVE_SIGNATURE_HEADER);
 
-        if (!$companyIdentifier || !$secret) {
-            return response()->json(['status' => 'error', 'message' => 'Missing company or signature'], 400);
+            if (!$secret) {
+                return response()->json(['status' => 'error', 'message' => 'Missing secret / signature'], 400);
+            }
+
+            $rehiveServiceToken = ServiceToken::where('company', $companyIdentifier)->first();
+
+            if (!$rehiveServiceToken) {
+                return response()->json(['status' => 'error', 'message' => 'Service Token not found'], 404);
+            }
+
+            if (!$rehiveServiceToken->activated) {
+                return response()->json(['status' => 'error', 'message' => 'Service not activated'], 403);
+            }
+
+            if (!hash_equals($rehiveServiceToken->webhook_secret, $secret)) {
+                return response()->json(['status' => 'error', 'message' => 'Invalid signature'], 401);
+            }
+
+            // Dispatch a job to process the webhook
+            ProcessRehiveWebhook::dispatch($request->all());
+
+            return response()->json(['status' => 'success']);
+        } catch (ValidationException $e) {
+            return response()->json(['status' => 'error', 'message' => $e->getMessage(), 'errors' => $e->errors()], 422);
+        } catch (RequestException $e) {
+            return response()->json([
+                'status' => 'error',
+                'message' => 'Rehive service token validation failed',
+                'rehive_status' => $e->response->status(),
+                'rehive_body' => $e->response->json()
+            ], 401);
+        } catch (Exception $e) {
+            Log::error('Error processing Rehive webhook: ' . $e->getMessage());
+            return response()->json(['status' => 'error', 'message' => 'Internal Server Error'], 500);
         }
-
-        $rehiveServiceToken = ServiceToken::where('company', $companyIdentifier)->first();
-
-        if (!$rehiveServiceToken || !$rehiveServiceToken->activated) {
-            return response()->json(['status' => 'error', 'message' => 'Company not found or not activated'], 404);
-        }
-
-        if (!hash_equals($rehiveServiceToken->webhook_secret, $secret)) {
-            return response()->json(['status' => 'error', 'message' => 'Invalid signature'], 401);
-        }
-
-        // Dispatch a job to process the webhook
-        \App\Jobs\ProcessRehiveWebhook::dispatch($request->all());
-
-        return response()->json(['status' => 'success']);
     }
 }

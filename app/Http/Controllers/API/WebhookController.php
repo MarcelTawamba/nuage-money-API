@@ -21,6 +21,24 @@ class WebhookController extends Controller
         ])->get('https://api.rehive.com/3/auth/');
     }
 
+    private function getRehiveCompanyName(string $token): ?string
+    {
+        $response = Http::withHeaders([
+            'Authorization' => 'Token ' . $token,
+        ])->get('https://api.rehive.com/3/company/');
+
+        if ($response->successful()) {
+            return $response->json('data.name');
+        }
+
+        Log::error('Failed to fetch Rehive company data', [
+            'status' => $response->status(),
+            'body' => $response->body(),
+        ]);
+
+        return null;
+    }
+
     public function activate(Request $request)
     {
         $validator = Validator::make($request->all(), [
@@ -45,7 +63,13 @@ class WebhookController extends Controller
                 return response()->json(['status' => 'error', 'message' => 'Invalid service token'], 401);
             }
 
-            $company = $response->json('data.company');
+            $company = $this->getRehiveCompanyName($serviceToken);
+
+            if (is_null($company)) {
+                Log::error('Could not retrieve company name from Rehive');
+                return response()->json(['status' => 'error', 'message' => 'Could not retrieve company name from Rehive'], 400);
+            }
+
             $webhook_secret = Str::random(32);
 
             ServiceToken::updateOrCreate(

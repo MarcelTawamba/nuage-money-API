@@ -54,4 +54,5 @@ dist/
 # Compiled Java class files
 *.class
 
-
+# Gemini assistant notes file
+gemini-notes.md

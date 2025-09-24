@@ -1,5 +1,6 @@
 import { defineConfig } from 'vite';
 import laravel from 'laravel-vite-plugin';
+import path from 'path';
 
 export default defineConfig({
     plugins: [
@@ -14,6 +15,10 @@ export default defineConfig({
                 // this is required for the SCSS modules
                 find: /^~(.*)$/,
                 replacement: '$1',
+            },
+            {
+                find: 'admin-lte',
+                replacement: path.resolve(__dirname, 'node_modules/admin-lte'),
             },
         ],
     },

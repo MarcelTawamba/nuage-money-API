@@ -9,8 +9,12 @@ export default defineConfig({
         }),
     ],
     resolve: {
-        alias: {
-            '~': '/node_modules/'
-        }
-    }
+        alias: [
+            {
+                // this is required for the SCSS modules
+                find: /^~(.*)$/,
+                replacement: '$1',
+            },
+        ],
+    },
 });

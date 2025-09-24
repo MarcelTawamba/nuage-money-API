@@ -8,10 +8,10 @@
     "dependencies": {
         "admin-lte": "^3.2.0",
         "axios": "^1.1.2",
-        "bootstrap": "^5.3.8",
+        "bootstrap": "^4.6.2",
         "jquery": "^3.6",
         "popper.js": "^1.16.1",
-        "sass": "^1.70.0"
+        "sass": "^1.32.13"
     },
     "devDependencies": {
         "@popperjs/core": "^2.11.8",

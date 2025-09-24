@@ -27,7 +27,7 @@ jobs:
       - name: "Build Assets"
         run: npm run build
       - name: "Install Heroku CLI"
-        uses: heroku/actions/setup-cli@v1
+        uses: heroku/actions/setup-heroku@v1
       - name: "Deploy to Heroku"
         uses: akhileshns/heroku-deploy@v3.12.12
         with:

@@ -10,7 +10,7 @@ export default defineConfig({
     ],
     resolve: {
         alias: {
-            '~admin-lte': 'admin-lte',
-        },
-    },
+            '~': '/node_modules/'
+        }
+    }
 });

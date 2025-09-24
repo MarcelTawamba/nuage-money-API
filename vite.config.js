@@ -13,10 +13,5 @@ export default defineConfig({
             input: ['resources/sass/app.scss', 'resources/js/app.js'],
             refresh: true,
         }),
-    ],
-    resolve: {
-        alias: {
-            '~': path.resolve(__dirname, 'node_modules')
-        }
-    },
+    ]
 });

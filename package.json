@@ -6,7 +6,7 @@
         "build": "vite build"
     },
     "dependencies": {
-        "admin-lte": "^4.0.0-rc3",
+        "admin-lte": "^3.2.0",
         "axios": "^1.1.2",
         "bootstrap": "^5.3.8",
         "jquery": "^3.6",

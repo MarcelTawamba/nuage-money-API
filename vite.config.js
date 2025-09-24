@@ -5,7 +5,8 @@ import path from 'path';
 export default defineConfig({
     resolve: {
         alias: {
-            '~': path.resolve(__dirname, 'node_modules/')
+            '~': path.resolve(__dirname, 'node_modules/'),
+            '~bootstrap': path.resolve(__dirname, 'node_modules/bootstrap')
         }
     },
     plugins: [

@@ -56,3 +56,6 @@ dist/
 
 # Gemini assistant notes file
 gemini-notes.md
+
+# disabling cloud build
+cloudbuild.yaml

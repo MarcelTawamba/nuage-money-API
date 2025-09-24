@@ -14,6 +14,8 @@ jobs:
         uses: shivammathur/setup-php@v2
         with:
           php-version: "8.3"
+      - name: "Update Composer Dependencies"
+        run: composer update
       - name: "Install Composer Dependencies"
         run: composer install --no-dev --optimize-autoloader
       - name: "Install Node.js"

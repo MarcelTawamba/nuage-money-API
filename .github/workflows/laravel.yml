@@ -23,7 +23,7 @@ jobs:
         with:
           node-version: '18'
       - name: "Install NPM Dependencies"
-        run: npm install
+        run: npm install --legacy-peer-deps
       - name: "Build Assets"
         run: npm run build
       - name: "Deploy to Heroku"

@@ -1,6 +1,9 @@
 // Variables
 @import 'variables';
 
+// Define primary color before Bootstrap imports
+$primary: #007bff;
+
 // Bootstrap
 @import "~bootstrap/scss/functions";
 @import "~bootstrap/scss/variables";

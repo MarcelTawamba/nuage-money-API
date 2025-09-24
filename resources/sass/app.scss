@@ -7,6 +7,7 @@ $theme-colors: (
 );
 
 // Bootstrap
+$custom-control-indicator-checked-disabled-bg: rgba(map-get($theme-colors, "primary"), .5) !default;
 @import "~bootstrap/scss/functions";
 @import "~bootstrap/scss/variables";
 @import "~bootstrap/scss/mixins";

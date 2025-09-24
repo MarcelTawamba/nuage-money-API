@@ -5,7 +5,7 @@ import path from 'path';
 export default defineConfig({
     resolve: {
         alias: {
-            '~': '/node_modules/'
+            '~': path.resolve(__dirname, 'node_modules/')
         }
     },
     plugins: [

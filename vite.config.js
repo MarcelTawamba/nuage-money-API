@@ -11,7 +11,7 @@ export default defineConfig({
     ],
     resolve: {
         alias: {
-            '~': path.resolve(__dirname, 'node_modules')
+            'admin-lte': path.resolve(__dirname, 'node_modules/admin-lte')
         }
     },
 });

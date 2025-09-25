@@ -23,7 +23,7 @@ jobs:
         with:
           node-version: '22'
       - name: "Install NPM Dependencies"
-        run: npm ci --legacy-peer-deps
+        run: npm install --legacy-peer-deps
       - name: "Build Assets"
         run: npm run build
       - name: "Install Heroku CLI"

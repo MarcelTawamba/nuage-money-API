@@ -19,7 +19,7 @@ class DatabaseSeeder extends Seeder
         //     'email' => 'test@example.com',
         // ]);
 
-        $this->call(\Lwwcas\LaravelCountries\Database\Seeders\LcDatabaseSeeder::class);
-        //$this->call(\Lwwcas\LaravelCountries\Database\Seeders\LcDatabaseSeeder::class, skip: ['LanguagesSeeder']);
+        $this->call(\Lwwcas\LaravelCountries\Seeders\LcDatabaseSeeder::class);
+        //$this->call(\Lwwcas\LaravelCountries\Seeders\LcDatabaseSeeder::class, skip: ['LanguagesSeeder']);
     }
 }

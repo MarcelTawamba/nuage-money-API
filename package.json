@@ -5,7 +5,7 @@
         "dev": "vite",
         "build": "vite build",
         "postinstall": "patch-package",
-        "prepare": "husky install"
+        "prepare": "is-ci || husky install"
     },
     "dependencies": {
         "admin-lte": "^3.2.0",
@@ -17,10 +17,11 @@
     },
     "devDependencies": {
         "@popperjs/core": "^2.11.8",
+        "husky": "^8.0.0",
+        "is-ci": "^3.0.1",
         "laravel-vite-plugin": "^1.0.0",
         "patch-package": "^8.0.0",
         "postinstall-postinstall": "^2.1.0",
-        "husky": "^8.0.0",
         "vite": "^5.0.0"
     }
 }

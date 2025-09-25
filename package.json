@@ -6,6 +6,9 @@
         "build": "vite build",
         "postinstall": "patch-package"
     },
+    "engines": {
+        "node": "22.x"
+    },
     "dependencies": {
         "admin-lte": "^3.2.0",
         "axios": "^1.1.2",

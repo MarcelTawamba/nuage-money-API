@@ -13,7 +13,7 @@ jobs:
       - name: "Setup PHP"
         uses: shivammathur/setup-php@v2
         with:
-          php-version: "8.3"
+          php-version: "8.1"
       - name: "Update Composer Dependencies"
         run: composer update
       - name: "Install Composer Dependencies"
@@ -26,6 +26,8 @@ jobs:
         run: npm ci --legacy-peer-deps
       - name: "Build Assets"
         run: npm run build
+      - name: "Clear Config Cache"
+        run: php artisan config:clear
       - name: "Install Heroku CLI"
         run: curl https://cli-assets.heroku.com/install.sh | sh
       - name: "Deploy to Heroku"

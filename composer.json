@@ -67,6 +67,11 @@
         ],
         "post-create-project-cmd": [
             "@php artisan key:generate --ansi"
+        ],
+        "heroku-release": [
+            "php artisan vendor:publish --provider=\"Lwwcas\\LaravelCountries\\LaravelCountriesServiceProvider\" --tag=\"migrations\" --force",
+            "php artisan migrate --force",
+            "php artisan db:seed --force"
         ]
     },
     "extra": {

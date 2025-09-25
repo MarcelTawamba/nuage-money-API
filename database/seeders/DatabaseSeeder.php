@@ -20,6 +20,6 @@ class DatabaseSeeder extends Seeder
         // ]);
 
         $this->call(\Lwwcas\LaravelCountries\Database\Seeders\LcDatabaseSeeder::class);
-
+        //$this->call(\Lwwcas\LaravelCountries\Database\Seeders\LcDatabaseSeeder::class, skip: ['LanguagesSeeder']);
     }
 }

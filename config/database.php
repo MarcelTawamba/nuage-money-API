@@ -157,10 +157,9 @@ return [
             'database' => env('REDIS_DB', '0'),
             'prefix' => env('NUAGE_ENV')."_nuage_",
             'scheme' => 'tls',
-            'context' => [
-                'ssl' => [
-                    'verify_peer' => false,
-                ],
+            'ssl' => [
+                'verify_peer' => false,
+                'verify_peer_name' => false,
             ],
         ],
 
@@ -173,10 +172,9 @@ return [
             'database' => env('REDIS_CACHE_DB', '1'),
             'prefix' => env('NUAGE_ENV')."_nuage_",
             'scheme' => 'tls',
-            'context' => [
-                'ssl' => [
-                    'verify_peer' => false,
-                ],
+            'ssl' => [
+                'verify_peer' => false,
+                'verify_peer_name' => false,
             ],
         ],
 

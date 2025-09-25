@@ -170,6 +170,10 @@ return [
             'port' => env('REDIS_PORT', '6379'),
             'database' => env('REDIS_CACHE_DB', '1'),
             'prefix' => env('NUAGE_ENV')."_nuage_",
+            'scheme' => 'tls',
+            'ssl' => [
+                'verify_peer' => false,
+            ],
         ],
 
     ],

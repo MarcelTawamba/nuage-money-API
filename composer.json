@@ -23,7 +23,7 @@
         "laravel/passport": "^11.8",
         "laravel/sanctum": "^3.3",
         "laravel/tinker": "^2.8",
-        "lwwcas/laravel-countries": "^4.0",
+        "lwwcas/laravel-countries": "4.12.0.1",
         "maatwebsite/excel": "^3.1",
         "mxl/laravel-job": "^1.5",
         "predis/predis": "^3.2",
@@ -67,11 +67,6 @@
         ],
         "post-create-project-cmd": [
             "@php artisan key:generate --ansi"
-        ],
-        "heroku-release": [
-            "php artisan vendor:publish --provider=\"Lwwcas\\LaravelCountries\\Providers\\LaravelCountriesServiceProvider\" --tag=\"migrations\" --force",
-            "ls -la database/migrations",
-            "php artisan migrate:fresh --seed --force"
         ]
     },
     "extra": {

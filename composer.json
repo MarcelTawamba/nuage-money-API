@@ -70,6 +70,7 @@
         ],
         "heroku-release": [
             "php artisan vendor:publish --provider=\"Lwwcas\\LaravelCountries\\Providers\\LaravelCountriesServiceProvider\" --tag=\"migrations\" --force",
+            "ls -la database/migrations",
             "php artisan migrate:fresh --seed --force"
         ]
     },

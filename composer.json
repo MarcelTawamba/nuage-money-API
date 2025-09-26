@@ -70,7 +70,7 @@
         ],
         "heroku-release": [
             "php artisan migrate --force",
-            "php artisan db:seed --class=\"Lwwcas\\\\LaravelCountries\\\\Database\\\\Seeders\\\\LwwcasDatabaseSeeder\" --force"
+            "php artisan db:seed --force"
         ]
     },
     "extra": {

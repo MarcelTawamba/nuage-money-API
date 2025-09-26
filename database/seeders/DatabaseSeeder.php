@@ -12,14 +12,11 @@ class DatabaseSeeder extends Seeder
      */
     public function run(): void
     {
-        // \App\Models\User::factory(10)->create();
+        $this->call(WalletTypeSeeder::class);
+        $this->call(CountryAvaillableSeeder::class);
+        $this->call(OperatorSeeder::class);
 
-        // \App\Models\User::factory()->create([
-        //     'name' => 'Test User',
-        //     'email' => 'test@example.com',
-        // ]);
-
+        // This seeder is from the lwwcas/laravel-countries package
         $this->call(\Lwwcas\LaravelCountries\Database\Seeders\LwwcasDatabaseSeeder::class);
-        //$this->call(\Lwwcas\LaravelCountries\Seeders\LcDatabaseSeeder::class, skip: ['LanguagesSeeder']);
     }
 }

@@ -17,5 +17,7 @@ class WalletTypeSeeder extends Seeder
         WalletType::firstOrCreate(['name' => 'XAF']);
         WalletType::firstOrCreate(['name' => 'USD']);
         WalletType::firstOrCreate(['name' => 'EUR']);
+        WalletType::firstOrCreate(['name' => 'NGN']);
+        WalletType::firstOrCreate(['name' => 'GHS']);
     }
 }

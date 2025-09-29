@@ -1,0 +1,38 @@
+name: Deploy to Heroku
+
+on:
+  push:
+    branches:
+      - develop
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v2
+      - name: "Setup PHP"
+        uses: shivammathur/setup-php@v2
+        with:
+          php-version: "8.2"
+      - name: "Update Composer Dependencies"
+        run: composer update
+      - name: "Install Composer Dependencies"
+        run: composer install --no-dev --optimize-autoloader
+      - name: "Install Node.js"
+        uses: actions/setup-node@v2
+        with:
+          node-version: '22'
+      - name: "Install NPM Dependencies"
+        run: npm ci --legacy-peer-deps
+      - name: "Build Assets"
+        run: npm run build
+      - name: "Clear Config Cache"
+        run: php artisan config:clear
+      - name: "Install Heroku CLI"
+        run: curl https://cli-assets.heroku.com/install.sh | sh
+      - name: "Deploy to Heroku"
+        uses: akhileshns/heroku-deploy@v3.12.12
+        with:
+          heroku_api_key: ${{secrets.HEROKU_API_KEY}}
+          heroku_app_name: ${{secrets.HEROKU_APP_NAME}}
+          heroku_email: ${{secrets.HEROKU_EMAIL}}

@@ -19,8 +19,8 @@ yarn-error.log
 .DS_Store
 .phpstorm.meta.php
 _ide_helper.php
-composer.lock
-package.lock
+
+
 
 # Large media files
 *.mp4
@@ -54,4 +54,8 @@ dist/
 # Compiled Java class files
 *.class
 
+# Gemini assistant notes file
+gemini-notes.md
 
+# disabling cloud build
+cloudbuild.yaml

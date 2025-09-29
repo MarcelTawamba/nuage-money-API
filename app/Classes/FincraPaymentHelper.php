@@ -21,7 +21,7 @@ class FincraPaymentHelper
      */
 
 
-    static public function initPayment($input): \Illuminate\Http\JsonResponse
+    public function initPayment($input): \Illuminate\Http\JsonResponse
     {
         /**** check if ref_id exist for this service **/
         $req = FincraMobilePaymentRequest::where("user_ref_id",$input["ref_id"])->where("client_id",$input["service"])->first();
@@ -46,7 +46,7 @@ class FincraPaymentHelper
         $request->country_code = $input["country"];
         $request->currency_code = $input["currency"];
         $request->user_ref_id = $input["ref_id"];
-        $request->ref_id = self::generateMomentTime(4);
+        $request->ref_id = $this->generateMomentTime(4);
 
         /*** toupesu mobile payment data  */
 
@@ -108,9 +108,18 @@ class FincraPaymentHelper
 
     }
 
+    public function initiatePayout(array $data)
+    {
+        Log::info('Initiating Fincra payout with data:', $data);
+
+        // Payout logic will go here
+
+        return ['status' => 'success'];
+    }
 
 
-    public static function generateMomentTime(int $lgt = 4): string
+
+    public function generateMomentTime(int $lgt = 4): string
     {
         $date = Carbon::now();
         $year = $date->year;

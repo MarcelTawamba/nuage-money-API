@@ -46,7 +46,7 @@ use Illuminate\Database\Eloquent\Relations\HasMany;
  */
 class Wallet extends  BaseWallet
 {
-    public $table = 'wallets';
+    public $table = 'wallets_nuage';
 
 
     public function currency(): \Illuminate\Database\Eloquent\Relations\BelongsTo

@@ -58,13 +58,13 @@ class StartButtonAfricaService
     }
 
     /**
-     * @param float $amount
-     * @param string $reference
+     * @param float $amount: This should be in fractional units. kobo for NGN, pesewas for GHS. 300 will be passed as 30000
+     * @param string $reference: a unique identifier for our collection transaction
      * @param string $currency
-     * @param string $email
+     * @param string $email: email address of payer
      * @return array
      */
-    public function requestPayment(float $amount, string $reference, string $currency="NGN", string $email="christian@nuage.money")
+    public function requestPayment(float $amount, string $reference="", string $currency="NGN", string $email="mtawamba@nuage.money")
     {
         //$amount = $amount * 100;
         $eendpoint = $this->base_url."transaction/initialize";

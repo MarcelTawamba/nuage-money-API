@@ -4,7 +4,7 @@ namespace App\Classes;
 
 use App\Enums\PaymentMethod;
 use App\Enums\PaymentStatus;
-use App\Events\PaymentSuccessEvent;
+use App\Events\PayInSuccessEvent;
 use App\Events\PayOutFailureEvent;
 use App\Jobs\CheckToupesuRequestStatus;
 use App\Models\Achat;
@@ -43,6 +43,11 @@ class StartButtonAfricaPaymentHelper extends GeneralPaymentHelper
         $new_achat->user_ref_id = $input["ref_id"];
         $new_achat->ref_id = self::generateMomentTime();
 
+        $redirectUrl = $input['redirectUrl'] ?? null;
+        $webhookUrl = $input['webhookUrl'] ?? null;
+        $paymentMethods = $input['paymentMethods'] ?? [];
+        $metadata = $input['metadata'] ?? [];
+
         /*** toupesu mobile payment data  */
         if(env("NUAGE_ENV","SANDBOX") == "SANDBOX"){
 
@@ -56,20 +61,24 @@ class StartButtonAfricaPaymentHelper extends GeneralPaymentHelper
         }else{
             $startButtonAfricaService = new  StartButtonAfricaService();
 
-            $result = $startButtonAfricaService->requestPayment($new_achat->amount*100 ,$new_achat->ref_id,strtoupper($new_achat->currency) , $input["email"]);
+            $result = $startButtonAfricaService->requestPayment($new_achat->amount*100 ,$new_achat->ref_id,strtoupper($new_achat->currency) , $input["email"], $redirectUrl, $webhookUrl, $paymentMethods, $metadata);
 
         }
 
 
 
 
-        if($result["success"]){
+        if($result["success"]){ 
                 /**** save the new ToupesuPaymentRequest object when request created **/
 
                 $new_start_button_request = new StartButtonPayInRequest();
                 $new_start_button_request->email = $input['email'];
                 $new_start_button_request->payment_link = $result["data"];
                 $new_start_button_request->status = PaymentStatus::CREATED;
+                $new_start_button_request->redirect_url = $redirectUrl;
+                $new_start_button_request->webhook_url = $webhookUrl;
+                $new_start_button_request->payment_methods = $paymentMethods;
+                $new_start_button_request->metadata = $metadata;
 
                 $new_start_button_request->save();
 
@@ -120,7 +129,7 @@ class StartButtonAfricaPaymentHelper extends GeneralPaymentHelper
             $trans->status = PaymentStatus::SUCCESSFUL;
 
             $data = new \stdClass();
-            $data->transaction =$trans;
+            $data->transaction = $trans;
 
             $result = [
                 "success"=> true,
@@ -148,7 +157,7 @@ class StartButtonAfricaPaymentHelper extends GeneralPaymentHelper
                 // Successful payment
                 $achat->status = PaymentStatus::SUCCESSFUL;
                 $achat->requestable->status = PaymentStatus::SUCCESSFUL;
-                PaymentSuccessEvent::dispatch($achat);
+                PayInSuccessEvent::dispatch($achat);
 
             }else{
                 $achat->requestable->status = PaymentStatus::PENDING;
@@ -251,11 +260,8 @@ class StartButtonAfricaPaymentHelper extends GeneralPaymentHelper
 
     static public function initPayout(array $input): \Illuminate\Http\JsonResponse
     {
-
-
-        /**** Create a new ToupesuPaymentRequest object for this user request */
-
-        $new_achat = new   Achat();
+        /**** Create a new Achat object for this user request */
+        $new_achat = new Achat();
         $new_achat->client_id = $input["service"];
         $new_achat->amount = -1 * $input["amount"];
         $new_achat->country = $input["country"];
@@ -263,59 +269,79 @@ class StartButtonAfricaPaymentHelper extends GeneralPaymentHelper
         $new_achat->user_ref_id = $input["ref_id"];
         $new_achat->ref_id = self::generateMomentTime();
 
-
-
-        if(env("NUAGE_ENV","SANDBOX") == "SANDBOX"){
+        if (env("NUAGE_ENV", "SANDBOX") == "SANDBOX") {
             $result = [
-                "success"=> true,
-                "message"=>"transfer",
-                "data"=> "processing"
+                "success" => true,
+                "message" => "transfer",
+                "data" => "processing"
             ];
-
-        }else{
-
-            $startButtonAfricaService = new  StartButtonAfricaService();
+        } else {
+            $startButtonAfricaService = new StartButtonAfricaService();
             $account = self::verifyAccount($input);
 
-            if(!$account["success"]){
+            if (!$account["success"]) {
                 return response()->json($account);
             }
 
-            $result = $startButtonAfricaService->makeTransfert($input["amount"] * 100, $input["bank_code"],$input["account_number"],$new_achat->ref_id,strtoupper($new_achat->currency));
+            // Prepare payload for the transfer API
+            $payoutData = [
+                'amount' => $input['amount'],
+                'currency' => strtoupper($new_achat->currency),
+                'reference' => $new_achat->ref_id,
+                'country' => $new_achat->country,
+            ];
+
+            // Add bank or mobile money details
+            if (!empty($input['bank_code']) && !empty($input['account_number'])) {
+                $payoutData['bankCode'] = $input['bank_code'];
+                $payoutData['accountNumber'] = $input['account_number'];
+            } elseif (!empty($input['MNO']) && !empty($input['msisdn'])) {
+                $payoutData['MNO'] = $input['MNO'];
+                $payoutData['msisdn'] = $input['msisdn'];
+            } else {
+                return response()->json([
+                    "success" => false,
+                    "message" => "Missing required bank or mobile money details for payout."
+                ]);
+            }
+
+            // Add optional webhookUrl
+            if (!empty($input['webhook_url'])) {
+                $payoutData['webhookUrl'] = $input['webhook_url'];
+            }
+
+            $result = $startButtonAfricaService->makeTransfer($payoutData);
         }
 
+        if ($result["success"]) {
+            /**** save the new StartButtonPayOutRequest object when request created **/
+            $new_start_button_request = new StartButtonPayOutRequest();
+            $new_start_button_request->account_name = $input["account_name"];
+            $new_start_button_request->account_number = $input["account_number"];
+            $new_start_button_request->status = PaymentStatus::CREATED;
+            $new_start_button_request->bank_code = $input["bank_code"] ?? null; // Can be null for mobile money
+            $new_start_button_request->mno = $input["MNO"] ?? null;
+            $new_start_button_request->msisdn = $input["msisdn"] ?? null;
 
+            $new_start_button_request->save();
 
-        if($result["success"]  ){
+            $new_achat->requestable()->associate($new_start_button_request);
+            $new_achat->status = PaymentStatus::CREATED;
+            $new_achat->save();
 
-                /**** save the new ToupesuPaymentRequest object when request created **/
+            self::saveTransaction($new_achat);
 
-                $new_start_button_request = new StartButtonPayOutRequest();
-                $new_start_button_request->account_name = $input["account_name"];
-                $new_start_button_request->account_number = $input["account_number"];
-                $new_start_button_request->status = PaymentStatus::CREATED;
-                $new_start_button_request->bank_code = $input["bank_code"];
+            CheckToupesuRequestStatus::dispatch($new_achat)->delay(now()->addSeconds(20));
 
-                $new_start_button_request->save();
-
-                $new_achat->requestable()->associate( $new_start_button_request);
-                $new_achat->status= PaymentStatus::CREATED;
-                $new_achat->save();
-
-                $res = self::saveTransaction($new_achat);
-
-                CheckToupesuRequestStatus::dispatch($new_achat)->delay(now()->addSeconds(20));
-
-                /*** return a json respond when request created ***/
-                return response()->json([
-                    "pay_token"=> $new_achat->ref_id,
-                    "amount"=> -1 * $new_achat->amount,
-                    "ref_id"=> $new_achat->user_ref_id,
-                    "payment_method"=> PaymentMethod::START_BUTTON_BANK,
-                    "status"=>$new_achat->status,
-                    "success"=>true
-                ]);
-
+            /*** return a json respond when request created ***/
+            return response()->json([
+                "pay_token" => $new_achat->ref_id,
+                "amount" => -1 * $new_achat->amount,
+                "ref_id" => $new_achat->user_ref_id,
+                "payment_method" => PaymentMethod::START_BUTTON_BANK, // Consider making this dynamic
+                "status" => $new_achat->status,
+                "success" => true
+            ]);
         }
 
         /*** return a json respond when request errors  **/
@@ -323,15 +349,13 @@ class StartButtonAfricaPaymentHelper extends GeneralPaymentHelper
             "Data" => $result
         ]);
         return response()->json([
-            "pay_token"=> $new_achat->ref_id,
-            "ref_id"=> $new_achat->user_ref_id,
-            "amount"=> -1 * $new_achat->amount,
-            "status"=> PaymentStatus::FAILED,
-            "message"=> "Payment has failed try latter",
-            "success"=>false
+            "pay_token" => $new_achat->ref_id,
+            "ref_id" => $new_achat->user_ref_id,
+            "amount" => -1 * $new_achat->amount,
+            "status" => PaymentStatus::FAILED,
+            "message" => "Payment has failed try latter",
+            "success" => false
         ]);
-
-
     }
 
     static public function verifyAccount(array $input): array

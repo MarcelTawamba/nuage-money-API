@@ -4,7 +4,7 @@ namespace App\Classes;
 
 use App\Enums\PaymentMethod;
 use App\Enums\PaymentStatus;
-use App\Events\PaymentSuccessEvent;
+use App\Events\PayInSuccessEvent;
 use App\Jobs\CheckToupesuRequestStatus;
 use App\Models\Achat;
 use App\Models\ClientWallet;
@@ -137,7 +137,7 @@ class ExchangeHelper
 
         $new_margin->save();
 
-        PaymentSuccessEvent::dispatch($new_achat1);
+        PayInSuccessEvent::dispatch($new_achat1);
 
         return [
             "success"=>true,

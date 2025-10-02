@@ -12,18 +12,60 @@ use App\Models\StartButtonPayInRequest;
 use App\Models\StartButtonPayOutRequest;
 use App\Services\StartButtonAfricaService;
 use libphonenumber\NumberParseException;
+use Illuminate\Http\JsonResponse;
 use function Symfony\Component\Translation\t;
 
 class StartButtonAfricaPaymentHelper extends GeneralPaymentHelper
 {
+    private static $availableMethodsByCurrency = [
+        'NGN' => ['bank', 'card', 'bank_transfer', 'ussd', 'payattitude'],
+        'GHS' => ['card', 'mobile_money'],
+        'ZAR' => ['eft', 'qr', 'card'],
+        'KES' => ['mobile_money', 'card'],
+        'UGX' => ['mobile_money', 'card'],
+        'RWF' => ['mobile_money', 'card'],
+        'XOF' => ['mobile_money', 'card'],
+        'XAF' => ['mobile_money', 'card'],
+    ];
+
+    private static function getPaymentMethodEnum(string $method): string
+    {
+        return match ($method) {
+            'mobile_money' => PaymentMethod::START_BUTTON_MOBILE,
+            'card' => PaymentMethod::START_BUTTON_CARD,
+            'bank' => PaymentMethod::START_BUTTON_BANK,
+            'bank_transfer' => PaymentMethod::START_BUTTON_BANK_TRANSFER,
+            'ussd' => PaymentMethod::START_BUTTON_USSD,
+            'payattitude' => PaymentMethod::START_BUTTON_PAYATTITUDE,
+            'eft' => PaymentMethod::START_BUTTON_EFT,
+            'qr' => PaymentMethod::START_BUTTON_QR,
+            default => PaymentMethod::START_BUTTON,
+        };
+    }
+
+    private static function getValidatedPaymentMethods(string $currency, array $requestedMethods): array
+    {
+        if (empty($requestedMethods)) {
+            return [self::$availableMethodsByCurrency[$currency][0]];
+        }
+
+        $validatedMethods = [];
+        foreach ($requestedMethods as $method) {
+            if (in_array($method, self::$availableMethodsByCurrency[$currency])) {
+                $validatedMethods[] = $method;
+            } else {
+                return [];
+            }
+        }
+
+        return $validatedMethods;
+    }
 
     /**
      * @throws NumberParseException
      */
-    static public function initPayment(array $input): \Illuminate\Http\JsonResponse
+    static public function initPayment(array $input): JsonResponse
     {
-
-
         $req = Achat::where("user_ref_id",$input["ref_id"])->where("client_id",$input["service"])->first();
 
         if($req instanceof   Achat){
@@ -43,23 +85,30 @@ class StartButtonAfricaPaymentHelper extends GeneralPaymentHelper
 
         $redirectUrl = $input['redirectUrl'] ?? null;
         $webhookUrl = $input['webhookUrl'] ?? null;
-        $paymentMethods = $input['paymentMethods'] ?? [];
+        $paymentMethods = $input['paymentMethods'] ?? null;
         $metadata = $input['metadata'] ?? [];
 
-        if(env("NUAGE_ENV","SANDBOX") == "SANDBOX"){
+        if ($paymentMethods) {
+            $validatedPaymentMethods = self::getValidatedPaymentMethods($new_achat->currency, $paymentMethods);
+            if (empty($validatedPaymentMethods)) {
+                return response()->json([
+                    "success" => false,
+                    "message" => "Invalid payment methods for the given currency."
+                ]);
+            }
+        } else {
+            $validatedPaymentMethods = self::getValidatedPaymentMethods($new_achat->currency, []);
+        }
 
+        if(env("NUAGE_ENV","SANDBOX") == "SANDBOX"){
             $result = [
                 "data" => "http://pay.startbutton.builditdigital.co.s3-website-eu-west-1.amazonaws.com/#/uswfao9b4v",
                 "success"=>true
             ];
-
-
-
         }else{
             $startButtonAfricaService = new  StartButtonAfricaService();
 
-            $result = $startButtonAfricaService->requestPayment($new_achat->amount*100 ,$new_achat->ref_id,strtoupper($new_achat->currency) , $input["email"], $redirectUrl, $webhookUrl, $paymentMethods, $metadata);
-
+            $result = $startButtonAfricaService->requestPayment($new_achat->amount*100 ,$new_achat->ref_id,strtoupper($new_achat->currency) , $input["email"], $redirectUrl, $webhookUrl, $validatedPaymentMethods, $metadata);
         }
 
         if($result["success"]){
@@ -69,7 +118,7 @@ class StartButtonAfricaPaymentHelper extends GeneralPaymentHelper
                 $new_start_button_request->status = PaymentStatus::CREATED;
                 $new_start_button_request->redirect_url = $redirectUrl;
                 $new_start_button_request->webhook_url = $webhookUrl;
-                $new_start_button_request->payment_methods = $paymentMethods;
+                $new_start_button_request->payment_methods = $validatedPaymentMethods;
                 $new_start_button_request->metadata = $metadata;
 
                 $new_start_button_request->save();
@@ -80,13 +129,15 @@ class StartButtonAfricaPaymentHelper extends GeneralPaymentHelper
 
                 CheckToupesuRequestStatus::dispatch($new_achat)->delay(now()->addSeconds(40));
 
+                $paymentMethod = self::getPaymentMethodEnum($validatedPaymentMethods[0]);
+
                 /*** return a json respond when request created ***/
                 return response()->json([
                     "pay_token"=> $new_achat->ref_id,
                     "amount"=> $new_achat->amount,
                     "ref_id"=> $new_achat->user_ref_id,
                     "payment_link"=> $new_start_button_request->payment_link,
-                    "payment_method"=> PaymentMethod::START_BUTTON_BANK,
+                    "payment_method"=> $paymentMethod,
                     "status"=>$new_achat->status,
                     "success"=>true,
                 ]);
@@ -238,7 +289,7 @@ class StartButtonAfricaPaymentHelper extends GeneralPaymentHelper
         ];
     }
 
-    static public function initPayout(array $input): \Illuminate\Http\JsonResponse
+    static public function initPayout(array $input): JsonResponse
     {
         /**** Create a new Achat object for this user request */
         $new_achat = new Achat();
@@ -275,9 +326,11 @@ class StartButtonAfricaPaymentHelper extends GeneralPaymentHelper
             if (!empty($input['bank_code']) && !empty($input['account_number'])) {
                 $payoutData['bankCode'] = $input['bank_code'];
                 $payoutData['accountNumber'] = $input['account_number'];
+                $paymentMethod = self::getPaymentMethodEnum('bank');
             } elseif (!empty($input['MNO']) && !empty($input['msisdn'])) {
                 $payoutData['MNO'] = $input['MNO'];
                 $payoutData['msisdn'] = $input['msisdn'];
+                $paymentMethod = self::getPaymentMethodEnum('mobile_money');
             } else {
                 return response()->json([
                     "success" => false,
@@ -318,7 +371,7 @@ class StartButtonAfricaPaymentHelper extends GeneralPaymentHelper
                 "pay_token" => $new_achat->ref_id,
                 "amount" => -1 * $new_achat->amount,
                 "ref_id" => $new_achat->user_ref_id,
-                "payment_method" => PaymentMethod::START_BUTTON_BANK, // Consider making this dynamic
+                "payment_method" => $paymentMethod,
                 "status" => $new_achat->status,
                 "success" => true
             ]);

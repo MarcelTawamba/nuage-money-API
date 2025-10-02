@@ -68,8 +68,12 @@ class StartButtonAfricaService
      * @param string $email: email address of payer
      * @return array
      */
-    public function requestPayment(float $amount, string $reference="", string $currency="NGN", string $email="mtawamba@nuage.money", string $redirectUrl = null, string $webhookUrl = null, array $paymentMethods = [], array $metadata = [])
-    {
+    public function requestPayment(
+        float $amount, string $reference="",
+        string $currency="NGN", string $email="mtawamba@nuage.money",
+        string $redirectUrl = null, string $webhookUrl = null,
+        array $paymentMethods = [], array $metadata = []
+    ){
         //$amount = $amount * 100;
         $eendpoint = $this->base_url."transaction/initialize";
         $postingData = [
@@ -163,5 +167,4 @@ class StartButtonAfricaService
             ];
         }
     }
-
 }

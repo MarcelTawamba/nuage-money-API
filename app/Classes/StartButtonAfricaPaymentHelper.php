@@ -33,8 +33,6 @@ class StartButtonAfricaPaymentHelper extends GeneralPaymentHelper
             ]);
         }
 
-        /**** Create a new ToupesuPaymentRequest object for this user request */
-
         $new_achat = new  Achat();
         $new_achat->client_id = $input["service"];
         $new_achat->amount = $input["amount"];
@@ -48,7 +46,6 @@ class StartButtonAfricaPaymentHelper extends GeneralPaymentHelper
         $paymentMethods = $input['paymentMethods'] ?? [];
         $metadata = $input['metadata'] ?? [];
 
-        /*** toupesu mobile payment data  */
         if(env("NUAGE_ENV","SANDBOX") == "SANDBOX"){
 
             $result = [
@@ -65,12 +62,7 @@ class StartButtonAfricaPaymentHelper extends GeneralPaymentHelper
 
         }
 
-
-
-
-        if($result["success"]){ 
-                /**** save the new ToupesuPaymentRequest object when request created **/
-
+        if($result["success"]){
                 $new_start_button_request = new StartButtonPayInRequest();
                 $new_start_button_request->email = $input['email'];
                 $new_start_button_request->payment_link = $result["data"];
@@ -97,12 +89,10 @@ class StartButtonAfricaPaymentHelper extends GeneralPaymentHelper
                     "payment_method"=> PaymentMethod::START_BUTTON_BANK,
                     "status"=>$new_achat->status,
                     "success"=>true,
-
                 ]);
-
         }
 
-        \Log::channel("slack")->info("Error when making payin", [
+        \Log::channel("slack")->info("Error when making pay-in", [
             "Data" => $result
         ]);
         /*** return a json respond when request errors  **/
@@ -112,11 +102,8 @@ class StartButtonAfricaPaymentHelper extends GeneralPaymentHelper
             "ref_id"=> $new_achat->user_ref_id,
             "amount"=> $new_achat->amount,
             "status"=> PaymentStatus::FAILED,
-            "message"=> "Request  has failed try latter"
+            "message"=> "Request has failed try latter"
         ]);
-
-
-
     }
 
     static public function checkRequestPayments(Achat $achat): array
@@ -142,9 +129,6 @@ class StartButtonAfricaPaymentHelper extends GeneralPaymentHelper
 
             $result = $startButtonAfricaService->checkTransaction($achat->ref_id);
         }
-
-
-
 
         if($result["success"] ){
 
@@ -176,7 +160,6 @@ class StartButtonAfricaPaymentHelper extends GeneralPaymentHelper
             ];
         }
 
-
         return [
             "pay_token"=> $achat->ref_id,
             "amount"=> $achat->amount,
@@ -184,8 +167,6 @@ class StartButtonAfricaPaymentHelper extends GeneralPaymentHelper
             "ref_id"=> $achat->user_ref_id,
             "payment_method"=> PaymentMethod::START_BUTTON_BANK,
         ];
-
-
     }
 
     static public function checkRequestPayout(Achat $achat): array
@@ -246,7 +227,6 @@ class StartButtonAfricaPaymentHelper extends GeneralPaymentHelper
                 "success"=>true
             ];
         }
-
 
         return [
             "pay_token"=> $achat->ref_id,
@@ -372,7 +352,6 @@ class StartButtonAfricaPaymentHelper extends GeneralPaymentHelper
 
             $account = $startButtonAfricaService->bankAccountValidation($input["bank_code"],$input["account_number"]);
 
-
             if($account["success"]){
                 similar_text(strtolower($input["account_name"]), strtolower($account["data"]->account_name),$percent );
                 if($percent < 80){
@@ -402,8 +381,6 @@ class StartButtonAfricaPaymentHelper extends GeneralPaymentHelper
 
     public static function generateMomentTime(): string
     {
-
         return "StartButton-". parent::UUID();
-
     }
 }

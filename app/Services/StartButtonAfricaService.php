@@ -161,9 +161,11 @@ class StartButtonAfricaService
                 "data" => $request->object()->data
             ];
         } else {
+            $responseObject = $request->object();
+            $errorMessage = $responseObject ? $responseObject->message : $request->body();
             return [
                 "success" => false,
-                "data" => $request->object()->message
+                "data" => $errorMessage
             ];
         }
     }

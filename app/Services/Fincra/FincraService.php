@@ -6,6 +6,7 @@ use App\Models\FincraBank;
 use App\Models\FincraBankAccount;
 use RuntimeException;
 use Illuminate\Support\Facades\Http;
+use Illuminate\Support\Facades\Log;
 
 class FincraService
 {
@@ -44,7 +45,7 @@ class FincraService
         if(!$businessId) {
             $endpoint = $this->baseUrl . '/profile/merchants/me';
             $request = $this->http()->get($endpoint);
-            \Log::channel("slack")->info("getBusinessId Post Response", [
+            Log::channel("slack")->info("getBusinessId Post Response", [
                 "theResponse" => $request
             ]);
 

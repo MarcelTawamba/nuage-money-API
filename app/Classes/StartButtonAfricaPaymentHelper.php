@@ -13,6 +13,7 @@ use App\Models\StartButtonPayOutRequest;
 use App\Services\StartButtonAfricaService;
 use libphonenumber\NumberParseException;
 use function Symfony\Component\Translation\t;
+use Illuminate\Support\Facades\Log;
 
 class StartButtonAfricaPaymentHelper extends GeneralPaymentHelper
 {
@@ -93,7 +94,7 @@ class StartButtonAfricaPaymentHelper extends GeneralPaymentHelper
 
         }
 
-        \Log::channel("slack")->info("Error when making payin", [
+        Log::channel("slack")->info("Error when making payin", [
             "Data" => $result
         ]);
         /*** return a json respond when request errors  **/
@@ -201,7 +202,7 @@ class StartButtonAfricaPaymentHelper extends GeneralPaymentHelper
 
             $result = $startButtonAfricaService->checkTransaction($achat->ref_id);
         }
-        \Log::channel("slack")->info("StartButtonWebHookController Data is OK and recevied", [
+        Log::channel("slack")->info("StartButtonWebHookController Data is OK and recevied", [
             "Data" => $result
         ]);
 
@@ -319,7 +320,7 @@ class StartButtonAfricaPaymentHelper extends GeneralPaymentHelper
         }
 
         /*** return a json respond when request errors  **/
-        \Log::channel("slack")->info("Error when making payout", [
+        Log::channel("slack")->info("Error when making payout", [
             "Data" => $result
         ]);
         return response()->json([

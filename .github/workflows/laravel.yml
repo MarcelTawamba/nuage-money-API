@@ -30,6 +30,11 @@ jobs:
         run: php artisan config:clear
       - name: "Install Heroku CLI"
         run: curl https://cli-assets.heroku.com/install.sh | sh
+      - name: "Install Git LFS"
+        run: |
+          curl -s https://packagecloud.io/install/repositories/github/git-lfs/script.deb.sh | sudo bash
+          sudo apt-get install git-lfs
+          git lfs install
       - name: "Deploy to Heroku"
         uses: akhileshns/heroku-deploy@v3.12.12
         with:

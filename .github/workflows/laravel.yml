@@ -30,8 +30,6 @@ jobs:
         run: php artisan config:clear
       - name: "Install Heroku CLI"
         run: curl https://cli-assets.heroku.com/install.sh | sh
-      - name: "Push to Heroku"
-        run: git push heroku HEAD:refs/heads/main --force
       - name: "Deploy to Heroku"
         uses: akhileshns/heroku-deploy@v3.12.12
         with:

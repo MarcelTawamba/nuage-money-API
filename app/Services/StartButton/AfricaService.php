@@ -27,7 +27,7 @@ class AfricaService
     {
         return Http::withHeaders([
             'Content-Type' => 'application/json',
-            'Authorization' => 'Bearer '.env("STARTBUTTON_SECRET_KEY")
+            'Authorization' => 'Bearer '.$this->secret_key
         ]);
     }
 
@@ -38,7 +38,7 @@ class AfricaService
     {
         return Http::withHeaders([
             'Content-Type' => 'application/json',
-            'Authorization' => 'Bearer '.env("STARTBUTTON_PUBLIC_KEY")
+            'Authorization' => 'Bearer '.$this->public_key
         ]);
 
     }
@@ -110,8 +110,8 @@ class AfricaService
      * @param string $accountNumber
      * @return array
      */
-    public function bankAccountValidation(string $bankCode, string $accountNumber) {
-        $eendpoint = $this->base_url."bank/verify?bankCode=".$bankCode."&accountNumber=".$accountNumber;
+    public function bankAccountValidation(string $bankCode, string $accountNumber, string $countryCode) {
+        $eendpoint = $this->base_url."bank/verify?bankCode=".$bankCode."&accountNumber=".$accountNumber."&countryCode=".$countryCode;
 
         $request = $this->http_secret()->get($eendpoint);
 
@@ -130,6 +130,22 @@ class AfricaService
     {
         $data['amount'] = $data['amount'] * 100;
         $endpoint = $this->base_url . "transaction/transfer";
+        $request = $this->http_secret()->post($endpoint, $data);
+        return $this->requestTreatment($request);
+    }
+
+    /**
+     */
+    public function getWalletBalance()
+    {
+        $endpoint = $this->base_url . "wallet";
+        $request = $this->http_secret()->get($endpoint);
+        return $this->requestTreatment($request);
+    }
+
+    public function convertFunds(array $data)
+    {
+        $endpoint = $this->base_url . "transaction";
         $request = $this->http_secret()->post($endpoint, $data);
         return $this->requestTreatment($request);
     }

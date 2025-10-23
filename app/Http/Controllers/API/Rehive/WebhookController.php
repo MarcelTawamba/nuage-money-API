@@ -1,6 +1,6 @@
 <?php
 
-namespace App\Http\Controllers\API;
+namespace App\Http\Controllers\API\Rehive;
 
 use App\Http\Controllers\Controller;
 use App\Models\ServiceToken;

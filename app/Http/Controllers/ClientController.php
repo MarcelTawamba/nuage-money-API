@@ -11,7 +11,7 @@ use App\Enums\MethodType;
 use App\Enums\PaymentMethod;
 use App\Enums\PaymentStatus;
 use App\Enums\PayType;
-use App\Events\PaymentSuccessEvent;
+use App\Events\PayInSuccessEvent;
 use App\Http\Requests\CreateClientRequest;
 use App\Http\Requests\UpdateClientRequest;
 use App\Models\Achat;
@@ -678,7 +678,7 @@ class ClientController extends AppBaseController
         $new_achat->requestable()->associate( $new_admin_deposit_request);
         $new_achat->status= PaymentStatus::SUCCESSFUL;
         $new_achat->save();
-        PaymentSuccessEvent::dispatch($new_achat);
+        PayInSuccessEvent::dispatch($new_achat);
         Flash::success('Deposit has been made');
 
         return redirect(route('home'));

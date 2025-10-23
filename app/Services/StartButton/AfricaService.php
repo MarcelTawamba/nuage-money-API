@@ -1,11 +1,11 @@
 <?php
 
-namespace App\Services;
+namespace App\Services\StartButton;
 
 use http\Exception\RuntimeException;
 use Illuminate\Support\Facades\Http;
 
-class StartButtonAfricaService
+class AfricaService
 {
     private $base_url;
 
@@ -48,9 +48,13 @@ class StartButtonAfricaService
      * @param string $type
      * @return array
      */
-    public function getListOfBanks(string $currency="NGN", string $type="bank") {
+    public function getListOfBanks(string $currency="NGN", string $type="bank", string $countryCode = null) {
 
-        $eendpoint = $this->base_url."bank/list/".$currency."?type=".$type;
+        $eendpoint = $this->base_url."/bank/list/".$currency."?type=".$type;
+
+        if ($countryCode) {
+            $eendpoint .= "&countryCode=" . $countryCode;
+        }
 
         $request = $this->http_secret()->get($eendpoint);
 
@@ -58,14 +62,18 @@ class StartButtonAfricaService
     }
 
     /**
-     * @param float $amount
-     * @param string $reference
+     * @param float $amount: This should be in fractional units. kobo for NGN, pesewas for GHS. 300 will be passed as 30000
+     * @param string $reference: a unique identifier for our collection transaction
      * @param string $currency
-     * @param string $email
+     * @param string $email: email address of payer
      * @return array
      */
-    public function requestPayment(float $amount, string $reference, string $currency="NGN", string $email="christian@nuage.money")
-    {
+    public function requestPayment(
+        float $amount, string $reference="",
+        string $currency="NGN", string $email="mtawamba@nuage.money",
+        string $redirectUrl = null, string $webhookUrl = null,
+        array $paymentMethods = [], array $metadata = []
+    ){
         //$amount = $amount * 100;
         $eendpoint = $this->base_url."transaction/initialize";
         $postingData = [
@@ -75,6 +83,22 @@ class StartButtonAfricaService
             'amount' => $amount
         ];
 
+        if ($redirectUrl) {
+            $postingData['redirectUrl'] = $redirectUrl;
+        }
+
+        if ($webhookUrl) {
+            $postingData['webhookUrl'] = $webhookUrl;
+        }
+
+        if (!empty($paymentMethods)) {
+            $postingData['paymentMethods'] = $paymentMethods;
+        }
+
+        if (!empty($metadata)) {
+            $postingData['metadata'] = $metadata;
+        }
+
         $request = $this->http_public()->post($eendpoint, $postingData);
 
         return $this->requestTreatment($request);
@@ -82,12 +106,12 @@ class StartButtonAfricaService
 
 
     /**
-     * @param string $banCode
+     * @param string $bankCode
      * @param string $accountNumber
      * @return array
      */
-    public function bankAccountValidation(string $banCode, string $accountNumber) {
-        $eendpoint = $this->base_url."bank/verify?bankCode=".$banCode."&accountNumber=".$accountNumber;
+    public function bankAccountValidation(string $bankCode, string $accountNumber) {
+        $eendpoint = $this->base_url."bank/verify?bankCode=".$bankCode."&accountNumber=".$accountNumber;
 
         $request = $this->http_secret()->get($eendpoint);
 
@@ -102,20 +126,11 @@ class StartButtonAfricaService
      * @param $currency
      * @return array
      */
-    public function makeTransfert(float $amount, string $bankCode, string $accountNumber, string $reference, $currency="NGN")
+    public function makeTransfer(array $data)
     {
-        //$amount = $amount * 100;
-        $endPoint = $this->base_url."transaction/transfer";
-        $postingData = [
-            "amount" => $amount,
-            "currency" => $currency,
-            "bankCode" => $bankCode,
-            "accountNumber" => $accountNumber,
-            "reference" => $reference
-        ];
-
-        $request = $this->http_secret()->post($endPoint, $postingData);
-
+        $data['amount'] = $data['amount'] * 100;
+        $endpoint = $this->base_url . "transaction/transfer";
+        $request = $this->http_secret()->post($endpoint, $data);
         return $this->requestTreatment($request);
     }
 
@@ -146,11 +161,12 @@ class StartButtonAfricaService
                 "data" => $request->object()->data
             ];
         } else {
+            $responseObject = $request->object();
+            $errorMessage = $responseObject ? $responseObject->message : $request->body();
             return [
                 "success" => false,
-                "data" => $request->object()->message
+                "data" => $errorMessage
             ];
         }
     }
-
 }

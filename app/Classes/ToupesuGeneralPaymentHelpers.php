@@ -5,7 +5,7 @@ namespace App\Classes;
 
 use App\Enums\PaymentMethod;
 use App\Enums\PaymentStatus;
-use App\Events\PaymentSuccessEvent;
+use App\Events\PayInSuccessEvent;
 use App\Events\PayOutFailureEvent;
 use App\Jobs\CheckToupesuRequestStatus;
 use App\Models\Achat;
@@ -163,7 +163,7 @@ class ToupesuGeneralPaymentHelpers extends GeneralPaymentHelper
                 // Successful payment
                 $achat->status = PaymentStatus::SUCCESSFUL;
                 $achat->requestable->status = PaymentStatus::SUCCESSFUL;
-                PaymentSuccessEvent::dispatch($achat);
+                PayInSuccessEvent::dispatch($achat);
 
             }else{
                 $achat->requestable->status = PaymentStatus::PENDING;

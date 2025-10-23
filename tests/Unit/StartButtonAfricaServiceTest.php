@@ -20,7 +20,6 @@ class StartButtonAfricaServiceTest extends TestCase
     {
         $service = new StartButtonAfricaService();
         $response = $service->getListOfBanks();
-        dd($response);
         $this->assertTrue($response['success'], "Please check your STARTBUTTON_SECRET_KEY in your .env and phpunit.xml files.");
         $this->assertNotEmpty($response['data']);
     }

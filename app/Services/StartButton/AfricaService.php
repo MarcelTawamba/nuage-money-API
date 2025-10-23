@@ -1,11 +1,11 @@
 <?php
 
-namespace App\Services;
+namespace App\Services\StartButton;
 
 use http\Exception\RuntimeException;
 use Illuminate\Support\Facades\Http;
 
-class StartButtonAfricaService
+class AfricaService
 {
     private $base_url;
 
@@ -50,7 +50,7 @@ class StartButtonAfricaService
      */
     public function getListOfBanks(string $currency="NGN", string $type="bank", string $countryCode = null) {
 
-        $eendpoint = $this->base_url."bank/list/".$currency."?type=".$type;
+        $eendpoint = $this->base_url."/bank/list/".$currency."?type=".$type;
 
         if ($countryCode) {
             $eendpoint .= "&countryCode=" . $countryCode;

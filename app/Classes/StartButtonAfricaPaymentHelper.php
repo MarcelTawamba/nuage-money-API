@@ -8,9 +8,9 @@ use App\Events\PayInSuccessEvent;
 use App\Events\PayOutFailureEvent;
 use App\Jobs\CheckToupesuRequestStatus;
 use App\Models\Achat;
-use App\Models\StartButtonPayInRequest;
-use App\Models\StartButtonPayOutRequest;
-use App\Services\StartButtonAfricaService;
+use App\Models\StartButton\PayInRequest;
+use App\Models\StartButton\PayOutRequest;
+use App\Services\StartButton\AfricaService;
 use libphonenumber\NumberParseException;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Support\Facades\Log;
@@ -106,13 +106,13 @@ class StartButtonAfricaPaymentHelper extends GeneralPaymentHelper
                 "success"=>true
             ];
         }else{
-            $startButtonAfricaService = new  StartButtonAfricaService();
+            $startButtonAfricaService = new  AfricaService();
 
             $result = $startButtonAfricaService->requestPayment($new_achat->amount*100 ,$new_achat->ref_id,strtoupper($new_achat->currency) , $input["email"], $redirectUrl, $webhookUrl, $validatedPaymentMethods, $metadata);
         }
 
         if($result["success"]){
-                $new_start_button_request = new StartButtonPayInRequest();
+                $new_start_button_request = new PayInRequest();
                 $new_start_button_request->email = $input['email'];
                 $new_start_button_request->payment_link = $result["data"];
                 $new_start_button_request->status = PaymentStatus::CREATED;
@@ -176,7 +176,7 @@ class StartButtonAfricaPaymentHelper extends GeneralPaymentHelper
             ];
         }else{
 
-            $startButtonAfricaService = new  StartButtonAfricaService();
+            $startButtonAfricaService = new  AfricaService();
 
             $result = $startButtonAfricaService->checkTransaction($achat->ref_id);
         }
@@ -238,7 +238,7 @@ class StartButtonAfricaPaymentHelper extends GeneralPaymentHelper
             ];
         }else{
 
-            $startButtonAfricaService = new  StartButtonAfricaService();
+            $startButtonAfricaService = new  AfricaService();
 
             $result = $startButtonAfricaService->checkTransaction($achat->ref_id);
         }
@@ -307,7 +307,7 @@ class StartButtonAfricaPaymentHelper extends GeneralPaymentHelper
                 "data" => "processing"
             ];
         } else {
-            $startButtonAfricaService = new StartButtonAfricaService();
+            $startButtonAfricaService = new AfricaService();
             $account = self::verifyAccount($input);
 
             if (!$account["success"]) {
@@ -338,17 +338,14 @@ class StartButtonAfricaPaymentHelper extends GeneralPaymentHelper
                 ]);
             }
 
-            // Add optional webhookUrl
-            if (!empty($input['webhook_url'])) {
-                $payoutData['webhookUrl'] = $input['webhook_url'];
-            }
+            $payoutData['webhookUrl'] = url('/api/startbutton-callback');
 
             $result = $startButtonAfricaService->makeTransfer($payoutData);
         }
 
         if ($result["success"]) {
             /**** save the new StartButtonPayOutRequest object when request created **/
-            $new_start_button_request = new StartButtonPayOutRequest();
+            $new_start_button_request = new PayOutRequest();
             $new_start_button_request->account_name = $input["account_name"];
             $new_start_button_request->account_number = $input["account_number"];
             $new_start_button_request->status = PaymentStatus::CREATED;
@@ -401,7 +398,7 @@ class StartButtonAfricaPaymentHelper extends GeneralPaymentHelper
             ];
         }else{
 
-            $startButtonAfricaService = new  StartButtonAfricaService();
+            $startButtonAfricaService = new  AfricaService();
 
             $account = $startButtonAfricaService->bankAccountValidation($input["bank_code"],$input["account_number"]);
 

@@ -2,6 +2,8 @@
 
 namespace App\Models;
 
+use App\Models\StartButton\PayInRequest;
+use App\Models\StartButton\PayOutRequest;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\MorphTo;
 
@@ -104,9 +106,9 @@ class Transaction extends Model
 
        if($this->achatable->requestable_type == ToupesuPaymentRequest::class){
            return  ["msidn"=>$this->achatable->requestable->msidn,"method"=>$this->achatable->requestable->payment_method] ;
-       }else if($this->achatable->requestable_type == StartButtonPayInRequest::class){
+       }else if($this->achatable->requestable_type == PayInRequest::class){
            return  ["email"=>$this->achatable->requestable->email,"name"=>"unknown"] ;
-       }else if($this->achatable->requestable_type == StartButtonPayOutRequest::class){
+       }else if($this->achatable->requestable_type == PayOutRequest::class){
 
            return  [
 

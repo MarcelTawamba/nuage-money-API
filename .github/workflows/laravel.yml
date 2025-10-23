@@ -10,6 +10,8 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v2
+      - name: Fetch LFS files
+        run: git lfs fetch --all
       - name: "Setup PHP"
         uses: shivammathur/setup-php@v2
         with:
@@ -30,14 +32,12 @@ jobs:
         run: php artisan config:clear
       - name: "Install Heroku CLI"
         run: curl https://cli-assets.heroku.com/install.sh | sh
-      - name: "Install Git LFS"
-        run: |
-          curl -s https://packagecloud.io/install/repositories/github/git-lfs/script.deb.sh | sudo bash
-          sudo apt-get install git-lfs
-          git lfs install
+      - name: "Push to Heroku"
+        run: git push heroku HEAD:refs/heads/main --force
       - name: "Deploy to Heroku"
         uses: akhileshns/heroku-deploy@v3.12.12
         with:
           heroku_api_key: ${{secrets.HEROKU_API_KEY}}
           heroku_app_name: ${{secrets.HEROKU_APP_NAME}}
           heroku_email: ${{secrets.HEROKU_EMAIL}}
+          justlogin: true

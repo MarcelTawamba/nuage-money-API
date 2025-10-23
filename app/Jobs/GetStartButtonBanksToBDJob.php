@@ -2,8 +2,8 @@
 
 namespace App\Jobs;
 
-use App\Models\StartButtonBank;
-use App\Services\StartButtonAfricaService;
+use App\Models\StartButton\Bank;
+use App\Services\StartButton\AfricaService;
 use Illuminate\Bus\Queueable;
 use Illuminate\Contracts\Queue\ShouldQueue;
 use Illuminate\Foundation\Bus\Dispatchable;
@@ -39,7 +39,7 @@ class GetStartButtonBanksToBDJob implements ShouldQueue
             return;
         }
 
-        $starButton = new StartButtonAfricaService();
+        $starButton = new AfricaService();
         $banksRes = $starButton->getListOfBanks($this->currency, $this->type, $this->countryCode);
 
         if(!$banksRes["success"]) {
@@ -51,7 +51,7 @@ class GetStartButtonBanksToBDJob implements ShouldQueue
 
         foreach ($banks as $bank) {
             if (isset($bank->id)) {
-                 StartButtonBank::updateOrCreate(
+                 Bank::updateOrCreate(
                     ['startbutton_id' => $bank->id],
                     [
                         'name' => $bank->name,

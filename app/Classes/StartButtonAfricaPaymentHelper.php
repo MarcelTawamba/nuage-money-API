@@ -308,11 +308,6 @@ class StartButtonAfricaPaymentHelper extends GeneralPaymentHelper
             ];
         } else {
             $startButtonAfricaService = new AfricaService();
-            $account = self::verifyAccount($input);
-
-            if (!$account["success"]) {
-                return response()->json($account);
-            }
 
             // Prepare payload for the transfer API
             $payoutData = [
@@ -324,6 +319,11 @@ class StartButtonAfricaPaymentHelper extends GeneralPaymentHelper
 
             // Add bank or mobile money details
             if (!empty($input['bank_code']) && !empty($input['account_number'])) {
+                $account = self::verifyAccount($input);
+
+                if (!$account["success"]) {
+                    return response()->json($account);
+                }
                 $payoutData['bankCode'] = $input['bank_code'];
                 $payoutData['accountNumber'] = $input['account_number'];
                 $paymentMethod = self::getPaymentMethodEnum('bank');
@@ -340,7 +340,46 @@ class StartButtonAfricaPaymentHelper extends GeneralPaymentHelper
 
             $payoutData['webhookUrl'] = url('/api/startbutton-callback');
 
-            $result = $startButtonAfricaService->makeTransfer($payoutData);
+            // check that the StartButton available balance for the given currency is > amount
+            $walletBalanceResponse = $startButtonAfricaService->getWalletBalance();
+            $balance  = 0;
+            $result = null;
+            if ($walletBalanceResponse["success"]) {
+                forEach ($walletBalanceResponse['data'] as $wallet) {
+                    if (isset($wallet['currency']) && $wallet['currency'] === $payoutData["currency"]) {
+                        $balance = $wallet['availableBalance'];
+                        break;
+                    }
+                }
+                if ($balance >= $payoutData["amount"]) {
+                    $result = $startButtonAfricaService->makeTransfer($payoutData);
+                }
+                else {
+                    /**
+                     * TODO: check if there is a master currency, then check its available balance converted to the 
+                     * the targeted currency.
+                     * 
+                     * if the there is enough funds in the master currency wallet then:
+                     * 
+                     * convert or transfer funds of the amount requested 
+                     * from the master currency wallet (Identified) to the target currency wallet
+                     * then call makeTransfer.
+                     * 
+                     * else: Raise an alert to ensure funds are deposited to the SB wallet
+                     * and then set a PENDING status on the transaction until the funds are deposited.
+                     * 
+                     * we might have to create an emergency reconciliation table where we store
+                     * transaction IDs for the transactions that were halted for insufficient funds
+                     */
+                    Log::channel("slack")->info("Insufficient funds for making payout", [
+                        "walletBalance" => $walletBalanceResponse
+                    ]);
+                }
+            }
+            else {
+                Log::channel("slack")->info("Cannot fetch wallet balance prior to making payout transfer.");
+            }
+            
         }
 
         if ($result["success"]) {
@@ -400,7 +439,8 @@ class StartButtonAfricaPaymentHelper extends GeneralPaymentHelper
 
             $startButtonAfricaService = new  AfricaService();
 
-            $account = $startButtonAfricaService->bankAccountValidation($input["bank_code"],$input["account_number"]);
+            // TODO: get country code
+            $account = $startButtonAfricaService->bankAccountValidation($input["bank_code"],$input["account_number"],$input["country"]);
 
             if($account["success"]){
                 similar_text(strtolower($input["account_name"]), strtolower($account["data"]->account_name),$percent );

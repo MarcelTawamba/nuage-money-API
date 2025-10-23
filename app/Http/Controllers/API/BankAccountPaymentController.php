@@ -17,7 +17,7 @@ use App\Models\ClientWallet;
 use App\Models\CountryAvaillable;
 use App\Models\CustomFee;
 use App\Models\Operator;
-use App\Models\StartButtonBank;
+use App\Models\StartButton\Bank;
 use App\Models\Wallet;
 use App\Models\WalletType;
 use GuzzleHttp\Exception\GuzzleException;
@@ -407,7 +407,7 @@ class BankAccountPaymentController extends \App\Http\Controllers\AppBaseControll
 
         $input = $request->all();
 
-        $code = StartButtonBank::where("currency",$input["currency"])->get();
+        $code = Bank::where("currency",$input["currency"])->get();
 
         return \response()->json($code->toArray());
 

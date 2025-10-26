@@ -7,10 +7,15 @@ use App\Models\StartButton\Collection;
 use App\Enums\PaymentStatus;
 use App\Events\PayInFailureEvent;
 use App\Events\PayInSuccessEvent;
+use App\Services\RehiveService;
 use Illuminate\Support\Facades\Log;
 
 class CollectionService
 {
+    public function __construct(private RehiveService $rehiveService)
+    {
+    }
+
     public function handle(object $data)
     {
         // Create a new collection record
@@ -57,6 +62,18 @@ class CollectionService
             $achat->save();
             if ($achat->requestable) {
                 $achat->requestable->save();
+            }
+
+            // Send status update to Rehive
+            if ($achat->user_ref_id) {
+                $transactions = [
+                    [
+                        'tx_type' => 'credit',
+                        'subtype' => 'deposit_bank',
+                        'account' => $achat->user_ref_id,
+                    ],
+                ];
+                $this->rehiveService->updateTransactionStatus($transactions, strtolower($newStatus));
             }
         }
     }

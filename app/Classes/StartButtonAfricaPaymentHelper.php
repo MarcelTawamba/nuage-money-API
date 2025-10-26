@@ -84,7 +84,7 @@ class StartButtonAfricaPaymentHelper extends GeneralPaymentHelper
         $new_achat->ref_id = self::generateMomentTime();
 
         $redirectUrl = $input['redirectUrl'] ?? null;
-        $webhookUrl = $input['webhookUrl'] ?? null;
+        $webhookUrl = url('/api/startbutton-callback');
         $paymentMethods = $input['paymentMethods'] ?? null;
         $metadata = $input['metadata'] ?? [];
 
@@ -259,8 +259,6 @@ class StartButtonAfricaPaymentHelper extends GeneralPaymentHelper
                 // Successful payment
                 $achat->status = PaymentStatus::SUCCESSFUL;
                 $achat->requestable->status = PaymentStatus::SUCCESSFUL;
-
-
             }else{
                 $achat->requestable->status = PaymentStatus::PENDING;
 
@@ -356,18 +354,18 @@ class StartButtonAfricaPaymentHelper extends GeneralPaymentHelper
                 }
                 else {
                     /**
-                     * TODO: check if there is a master currency, then check its available balance converted to the 
+                     * TODO: check if there is a master currency, then check its available balance converted to the
                      * the targeted currency.
-                     * 
+                     *
                      * if the there is enough funds in the master currency wallet then:
-                     * 
-                     * convert or transfer funds of the amount requested 
+                     *
+                     * convert or transfer funds of the amount requested
                      * from the master currency wallet (Identified) to the target currency wallet
                      * then call makeTransfer.
-                     * 
+                     *
                      * else: Raise an alert to ensure funds are deposited to the SB wallet
                      * and then set a PENDING status on the transaction until the funds are deposited.
-                     * 
+                     *
                      * we might have to create an emergency reconciliation table where we store
                      * transaction IDs for the transactions that were halted for insufficient funds
                      */
@@ -379,7 +377,7 @@ class StartButtonAfricaPaymentHelper extends GeneralPaymentHelper
             else {
                 Log::channel("slack")->info("Cannot fetch wallet balance prior to making payout transfer.");
             }
-            
+
         }
 
         if ($result["success"]) {

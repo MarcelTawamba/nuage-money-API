@@ -34,20 +34,21 @@ class ProcessRehiveWebhook implements ShouldQueue
      */
     public function handle(StartButtonAfricaPaymentHelper $startButtonAfricaPaymentHelper)
     {
-        Log::info('Processing Rehive webhook job:', $this->webhookData);
+        Log::info('***JOB: Processing Rehive webhook event: ', $this->webhookData['subtype']);
 
-        $event = $this->webhookData['event'];
-        $data = $this->webhookData['data'];
+        $event = $this->webhookData['subtype'];
+        $data = [
+            'user_ref_id' => $this->webhookData['user']['id'],
+            'service' => $this->webhookData['creator']['id'],
+            'amount' => $this->webhookData['total_amount'],
+            'currency' => $this->webhookData['currency']['code'],
+            'metadata' => $this->webhookData['metadata'],
+            'country' => $this->webhookData['metadata']['country'] ?? 'NG',
+            'transactions' => $this->webhookData['transactions'],
+        ];
 
         switch ($event) {
-            case RehiveEventType::INITIATE_NGN_PAYOUT:
-            case RehiveEventType::INITIATE_GHS_PAYOUT:
-            case RehiveEventType::INITIATE_ZAR_PAYOUT:
-            case RehiveEventType::INITIATE_KES_PAYOUT:
-            case RehiveEventType::INITIATE_UGX_PAYOUT:
-            case RehiveEventType::INITIATE_RWF_PAYOUT:
-            case RehiveEventType::INITIATE_XOF_PAYOUT:
-            case RehiveEventType::INITIATE_XAF_PAYOUT:
+            case RehiveEventType::WITHDRAW_MANUAL:
                 $startButtonAfricaPaymentHelper->initPayout($data);
                 break;
             // Add more cases for other event types here

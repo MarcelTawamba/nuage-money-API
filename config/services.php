@@ -31,4 +31,20 @@ return [
         'region' => env('AWS_DEFAULT_REGION', 'us-east-1'),
     ],
 
+    'rehive' => [
+        'base_url' => env('REHIVE_BASE_URL'),
+        'token' => env('REHIVE_API_TOKEN'),
+        'operational_accounts' => [
+            'NGN' => env('REHIVE_OPERATIONAL_ACCOUNT_NGN'),
+            'KES' => env('REHIVE_OPERATIONAL_ACCOUNT_KES'),
+            'GHS' => env('REHIVE_OPERATIONAL_ACCOUNT_GHS'),
+            'ZAR' => env('REHIVE_OPERATIONAL_ACCOUNT_ZAR'),
+            'UGX' => env('REHIVE_OPERATIONAL_ACCOUNT_UGX'),
+            'RWF' => env('REHIVE_OPERATIONAL_ACCOUNT_RWF'),
+            'XOF' => env('REHIVE_OPERATIONAL_ACCOUNT_XOF'),
+            'XAF' => env('REHIVE_OPERATIONAL_ACCOUNT_XAF'),
+            'TZS' => env('REHIVE_OPERATIONAL_ACCOUNT_TZS'),
+        ],
+    ],
+
 ];

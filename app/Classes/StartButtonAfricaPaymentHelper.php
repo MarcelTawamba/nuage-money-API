@@ -353,19 +353,6 @@ class StartButtonAfricaPaymentHelper extends GeneralPaymentHelper
                     $result = $startButtonAfricaService->makeTransfer($payoutData);
                 }
                 else {
-                    /**
-                     * TODO: check if the there is enough funds in the currency wallet then:
-                     * call makeTransfer.
-                     *
-                     * else: Raise an alert to ensure funds are deposited to the SB currency wallet
-                     * and then set a PENDING status on the transaction until the funds are deposited.
-                     *
-                     * we might have to create an emergency reconciliation table where we store
-                     * transaction IDs for the transactions that were halted for insufficient funds.
-                     *
-                     * so that they can be re-processed after the funds are deposited. ideally we would have an admin
-                     * endpoint that can be invoked to processed these halted transactions.
-                     */
                     Log::channel("slack")->info("Insufficient funds for making payout", [
                         "walletBalance" => $walletBalanceResponse
                     ]);

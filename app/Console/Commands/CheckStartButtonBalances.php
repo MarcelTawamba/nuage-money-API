@@ -3,6 +3,7 @@
 namespace App\Console\Commands;
 
 use App\Models\User;
+use \App\Models\Wallet;
 use App\Models\WalletType;
 use App\Notifications\LowBalanceWarning;
 use App\Repositories\WalletRepository;
@@ -29,7 +30,7 @@ class CheckStartButtonBalances extends Command
     /**
      * Execute the console command.
      */
-    public function handle(AfricaService $startButtonAfricaService, WalletRepository $walletRepository)
+    public function handle(AfricaService $startButtonAfricaService)
     {
         $thresholds = config('balance_thresholds.startbutton');
         $walletBalanceResponse = $startButtonAfricaService->getWalletBalance();
@@ -58,7 +59,8 @@ class CheckStartButtonBalances extends Command
         foreach ($walletMap as $currency => $balance) {
             $walletType = WalletType::firstOrCreate(['name' => $currency]);
 
-            $walletRepository->updateOrCreate(
+            // Assuming you have a Wallet model, use updateOrCreate directly on it
+            Wallet::updateOrCreate(
                 [
                     'user_id' => $adminUser->id,
                     'user_type' => get_class($adminUser),

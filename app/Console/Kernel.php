@@ -17,7 +17,7 @@ class Kernel extends ConsoleKernel
         // $schedule->command('inspire')->hourly();
         $schedule->job(new ReadRateEmailJob())->dailyAt("7:30");
         $schedule->command('banks:sync')->daily();
-        $schedule->command('balances:check-startbutton')->hourly();
+        $schedule->command('balances:check-startbutton')->everyTwoMinutes()->appendOutputTo(storage_path('logs/scheduler.log'));
     }
 
     /**

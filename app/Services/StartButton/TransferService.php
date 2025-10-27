@@ -37,7 +37,7 @@ class TransferService
         Log::channel('slack')->info('StartButton Transfer record created', ['transfer' => $transfer]);
 
         // Find the original Achat record
-        $achat = Achat::where('ref_id', $transfer->transaction_reference)->first();
+        $achat = Achat::where('user_ref_id', $transfer->transaction_reference)->first();
 
         if ($achat instanceof Achat) {
             $newStatus = PaymentStatus::getStatus($transfer->status);
@@ -64,7 +64,7 @@ class TransferService
             if ($achat->user_ref_id) {
                 $transactions = [
                     [
-                        'id' => $achat->ref_id,
+                        'id' => $achat->user_ref_id,
                         'tx_type' => 'debit',
                         'subtype' => RehiveEventType::WITHDRAW_MANUAL,
                         'account' => config('services.rehive.operational_accounts.' . $achat->currency),

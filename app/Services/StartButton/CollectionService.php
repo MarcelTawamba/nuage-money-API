@@ -41,7 +41,7 @@ class CollectionService
         Log::channel('slack')->info('StartButton Collection record created', ['collection' => $collection]);
 
         // Find the original Achat record
-        $achat = Achat::where('ref_id', $collection->user_transaction_reference)->first();
+        $achat = Achat::where('user_ref_id', $collection->user_transaction_reference)->first();
 
         if ($achat instanceof Achat) {
             $newStatus = PaymentStatus::getStatus($collection->status);

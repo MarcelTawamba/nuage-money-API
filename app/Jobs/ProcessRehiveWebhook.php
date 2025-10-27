@@ -38,7 +38,7 @@ class ProcessRehiveWebhook implements ShouldQueue
 
         $event = $this->webhookData['subtype'];
         $data = [
-            'user_ref_id' => $this->webhookData['user']['id'],
+            'ref_id' => $this->webhookData['id'],
             'service' => $this->webhookData['creator']['id'],
             'amount' => $this->webhookData['total_amount'],
             'currency' => $this->webhookData['currency']['code'],

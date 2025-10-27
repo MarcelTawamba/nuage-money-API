@@ -311,7 +311,7 @@ class StartButtonAfricaPaymentHelper extends GeneralPaymentHelper
             $payoutData = [
                 'amount' => $input['amount'],
                 'currency' => strtoupper($new_achat->currency),
-                'reference' => $new_achat->ref_id,
+                'reference' => $new_achat->user_ref_id,
                 'country' => $new_achat->country,
             ];
 
@@ -354,20 +354,17 @@ class StartButtonAfricaPaymentHelper extends GeneralPaymentHelper
                 }
                 else {
                     /**
-                     * TODO: check if there is a master currency, then check its available balance converted to the
-                     * the targeted currency.
+                     * TODO: check if the there is enough funds in the currency wallet then:
+                     * call makeTransfer.
                      *
-                     * if the there is enough funds in the master currency wallet then:
-                     *
-                     * convert or transfer funds of the amount requested
-                     * from the master currency wallet (Identified) to the target currency wallet
-                     * then call makeTransfer.
-                     *
-                     * else: Raise an alert to ensure funds are deposited to the SB wallet
+                     * else: Raise an alert to ensure funds are deposited to the SB currency wallet
                      * and then set a PENDING status on the transaction until the funds are deposited.
                      *
                      * we might have to create an emergency reconciliation table where we store
-                     * transaction IDs for the transactions that were halted for insufficient funds
+                     * transaction IDs for the transactions that were halted for insufficient funds.
+                     *
+                     * so that they can be re-processed after the funds are deposited. ideally we would have an admin
+                     * endpoint that can be invoked to processed these halted transactions.
                      */
                     Log::channel("slack")->info("Insufficient funds for making payout", [
                         "walletBalance" => $walletBalanceResponse

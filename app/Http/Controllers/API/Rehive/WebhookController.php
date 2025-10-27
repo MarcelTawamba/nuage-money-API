@@ -22,7 +22,7 @@ class WebhookController extends Controller
     private const REHIVE_AUTH_URL = self::REHIVE_API_BASE_URL . '/auth/';
     private const REHIVE_COMPANY_URL = self::REHIVE_API_BASE_URL . '/company/';
     private const REHIVE_SIGNATURE_HEADER = 'X-Rehive-Signature';
-    
+
     private function validateRequestAndGetToken(Request $request): string
     {
         $validator = Validator::make($request->all(), [

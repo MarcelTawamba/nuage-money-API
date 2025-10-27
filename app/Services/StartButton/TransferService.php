@@ -2,15 +2,21 @@
 
 namespace App\Services\StartButton;
 
+use App\Enums\RehiveEventType;
 use App\Models\Achat;
 use App\Models\StartButton\Transfer;
 use App\Enums\PaymentStatus;
 use App\Events\PayOutFailureEvent;
 use App\Events\PayOutSuccessEvent;
+use App\Services\RehiveService;
 use Illuminate\Support\Facades\Log;
 
 class TransferService
 {
+    public function __construct(private RehiveService $rehiveService)
+    {
+    }
+
     public function handle(object $data)
     {
         // Create a new transfer record
@@ -52,6 +58,19 @@ class TransferService
             $achat->save();
             if ($achat->requestable) {
                 $achat->requestable->save();
+            }
+
+            // Send status update to Rehive
+            if ($achat->user_ref_id) {
+                $transactions = [
+                    [
+                        'id' => $achat->ref_id,
+                        'tx_type' => 'debit',
+                        'subtype' => RehiveEventType::WITHDRAW_MANUAL,
+                        'account' => config('services.rehive.operational_accounts.' . $achat->currency),
+                    ],
+                ];
+                $this->rehiveService->updateTransactionStatus($transactions, strtolower($newStatus));
             }
         }
     }

@@ -42,9 +42,7 @@ class ProcessRehiveWebhook implements ShouldQueue
             'service' => $this->webhookData['creator']['id'],
             'amount' => $this->webhookData['total_amount'],
             'currency' => $this->webhookData['currency']['code'],
-            'metadata' => $this->webhookData['metadata'],
-            'country' => $this->webhookData['metadata']['country'] ?? 'NG',
-            'transactions' => $this->webhookData['transactions'],
+            'country' => $this->webhookData['metadata']['location'] ?? 'Nigeria',
         ];
 
         switch ($event) {

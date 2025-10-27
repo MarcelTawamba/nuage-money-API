@@ -12,7 +12,7 @@ class RehiveService
 
     public function __construct()
     {
-        $this->baseUrl = env('REHIVE_API_URL', 'https://api.rehive.com/3');
+        $this->baseUrl = env('REHIVE_BASE_URL', 'https://api.rehive.com/3');
     }
 
     private function getActiveServiceToken(): ?string

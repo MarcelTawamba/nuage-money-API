@@ -52,10 +52,10 @@ class GetStartButtonBanksToBDJob implements ShouldQueue
         foreach ($banks as $bank) {
             if (isset($bank->id)) {
                  Bank::updateOrCreate(
-                    ['code' => $bank->code],
+                    ['startbutton_id' => $bank->id],
                     [
                         'name' => $bank->name,
-                        'startbutton_id' => $bank->id,
+                        'code' => $bank->code,
                         'currency' => $this->currency,
                     ]
                 );

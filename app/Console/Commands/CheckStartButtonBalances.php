@@ -30,8 +30,10 @@ class CheckStartButtonBalances extends Command
     /**
      * Execute the console command.
      */
-    public function handle(AfricaService $startButtonAfricaService)
+    public function handle()
     {
+        $startButtonAfricaService = new AfricaService();
+
         echo "Checking StartButton balances...\n";
         echo 'STARTBUTTON_ROOT_URL: ' . env('STARTBUTTON_ROOT_URL') . "\n";
         echo 'STARTBUTTON_SECRET_KEY is set: ' . (env('STARTBUTTON_SECRET_KEY') ? 'true' : 'false') . "\n";

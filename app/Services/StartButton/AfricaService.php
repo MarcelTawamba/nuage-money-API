@@ -75,7 +75,7 @@ class AfricaService
         array $paymentMethods = [], array $metadata = []
     ){
         //$amount = $amount * 100;
-        $eendpoint = $this->base_url."transaction/initialize";
+        $eendpoint = $this->base_url."/transaction/initialize";
         $postingData = [
             'email' => $email,
             'reference' => $reference,
@@ -111,7 +111,7 @@ class AfricaService
      * @return array
      */
     public function bankAccountValidation(string $bankCode, string $accountNumber, string $countryCode) {
-        $eendpoint = $this->base_url."bank/verify?bankCode=".$bankCode."&accountNumber=".$accountNumber."&countryCode=".$countryCode;
+        $eendpoint = $this->base_url."/bank/verify?bankCode=".$bankCode."&accountNumber=".$accountNumber."&countryCode=".$countryCode;
 
         $request = $this->http_secret()->get($eendpoint);
 
@@ -129,7 +129,7 @@ class AfricaService
     public function makeTransfer(array $data)
     {
         $data['amount'] = $data['amount'] * 100;
-        $endpoint = $this->base_url . "transaction/transfer";
+        $endpoint = $this->base_url . "/transaction/transfer";
         $request = $this->http_secret()->post($endpoint, $data);
         return $this->requestTreatment($request);
     }
@@ -145,7 +145,7 @@ class AfricaService
 
     public function convertFunds(array $data)
     {
-        $endpoint = $this->base_url . "transaction";
+        $endpoint = $this->base_url . "/transaction";
         $request = $this->http_secret()->post($endpoint, $data);
         return $this->requestTreatment($request);
     }
@@ -156,7 +156,7 @@ class AfricaService
      */
     public function checkTransaction(string $reference)
     {
-        $endpoint = $this->base_url."transaction/status/".$reference;
+        $endpoint = $this->base_url."/transaction/status/".$reference;
 
         $request = $this->http_secret()->get($endpoint);
 

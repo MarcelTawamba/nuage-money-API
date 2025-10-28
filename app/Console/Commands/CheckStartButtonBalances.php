@@ -3,12 +3,12 @@
 namespace App\Console\Commands;
 
 use App\Models\User;
-use \App\Models\Wallet;
 use App\Models\WalletType;
+use \App\Models\Wallet;
 use App\Notifications\LowBalanceWarning;
-use App\Repositories\WalletRepository;
 use App\Services\StartButton\AfricaService;
 use Illuminate\Console\Command;
+use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\Notification;
 
 class CheckStartButtonBalances extends Command
@@ -32,8 +32,10 @@ class CheckStartButtonBalances extends Command
      */
     public function handle(AfricaService $startButtonAfricaService)
     {
+        Log::info('STARTBUTTON_ROOT_URL: ' . env('STARTBUTTON_ROOT_URL'));
         $thresholds = config('balance_thresholds.startbutton');
         $walletBalanceResponse = $startButtonAfricaService->getWalletBalance();
+        Log::info('StartButton wallet balance response: ' . json_encode($walletBalanceResponse));
         $wallets = [];
         if ($walletBalanceResponse['success']) {
             $wallets = $walletBalanceResponse['data'];
@@ -59,7 +61,6 @@ class CheckStartButtonBalances extends Command
         foreach ($walletMap as $currency => $balance) {
             $walletType = WalletType::firstOrCreate(['name' => $currency]);
 
-            // Assuming you have a Wallet model, use updateOrCreate directly on it
             Wallet::updateOrCreate(
                 [
                     'user_id' => $adminUser->id,

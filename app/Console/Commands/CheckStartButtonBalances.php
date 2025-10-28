@@ -59,9 +59,12 @@ class CheckStartButtonBalances extends Command
 
         // Save the balances to the database
         foreach ($walletMap as $currency => $balance) {
-            $walletType = WalletType::firstOrCreate(['name' => $currency]);
+            Log::info("Processing currency: $currency");
 
-            Wallet::updateOrCreate(
+            $walletType = WalletType::firstOrCreate(['name' => $currency]);
+            Log::info("Wallet type for $currency: " . json_encode($walletType));
+
+            $wallet = Wallet::updateOrCreate(
                 [
                     'user_id' => $adminUser->id,
                     'user_type' => get_class($adminUser),
@@ -71,8 +74,8 @@ class CheckStartButtonBalances extends Command
                     'balance' => $balance,
                 ]
             );
+            Log::info("Wallet for $currency: " . json_encode($wallet));
         }
-
 
         foreach ($thresholds as $currency => $threshold) {
             $balance = $walletMap[$currency] ?? 0;

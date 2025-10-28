@@ -169,6 +169,7 @@ class WebhookController extends Controller
 
     public function webhook(Request $request)
     {
+        Log::info($request);
         try {
             $token = $this->validateRequestAndGetToken($request);
             $companyIdentifier = $this->getRehiveCompanyName($token);

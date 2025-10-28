@@ -30,18 +30,12 @@ class CheckStartButtonBalances extends Command
     /**
      * Execute the console command.
      */
-    public function handle()
+    public function handle(AfricaService $startButtonAfricaService)
     {
-        $startButtonAfricaService = new AfricaService();
-
-        echo "Checking StartButton balances...\n";
-        echo 'STARTBUTTON_ROOT_URL: ' . env('STARTBUTTON_ROOT_URL') . "\n";
-        echo 'STARTBUTTON_SECRET_KEY is set: ' . (env('STARTBUTTON_SECRET_KEY') ? 'true' : 'false') . "\n";
-        echo 'STARTBUTTON_PUBLIC_KEY is set: ' . (env('STARTBUTTON_PUBLIC_KEY') ? 'true' : 'false') . "\n";
-
+        Log::info('STARTBUTTON_ROOT_URL: ' . env('STARTBUTTON_ROOT_URL'));
         $thresholds = config('balance_thresholds.startbutton');
         $walletBalanceResponse = $startButtonAfricaService->getWalletBalance();
-        echo 'StartButton wallet balance response: ' . json_encode($walletBalanceResponse) . "\n";
+        Log::info('StartButton wallet balance response: ' . json_encode($walletBalanceResponse));
         $wallets = [];
         if ($walletBalanceResponse['success']) {
             $wallets = $walletBalanceResponse['data'];
@@ -50,8 +44,8 @@ class CheckStartButtonBalances extends Command
         // Create a map of wallets with currency as the key
         $walletMap = [];
         foreach ($wallets as $wallet) {
-            if (isset($wallet['currency'])) {
-                $walletMap[$wallet['currency']] = $wallet['availableBalance'];
+            if (isset($wallet->currency)) {
+                $walletMap[$wallet->currency] = $wallet->availableBalance;
             }
         }
 

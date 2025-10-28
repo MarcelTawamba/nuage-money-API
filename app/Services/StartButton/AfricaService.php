@@ -138,7 +138,7 @@ class AfricaService
      */
     public function getWalletBalance()
     {
-        $endpoint = $this->base_url . "wallet";
+        $endpoint = $this->base_url . "/wallet";
         $request = $this->http_secret()->get($endpoint);
         return $this->requestTreatment($request);
     }

@@ -32,10 +32,14 @@ class CheckStartButtonBalances extends Command
      */
     public function handle(AfricaService $startButtonAfricaService)
     {
-        Log::info('STARTBUTTON_ROOT_URL: ' . env('STARTBUTTON_ROOT_URL'));
+        echo "Checking StartButton balances...\n";
+        echo 'STARTBUTTON_ROOT_URL: ' . env('STARTBUTTON_ROOT_URL') . "\n";
+        echo 'STARTBUTTON_SECRET_KEY is set: ' . (env('STARTBUTTON_SECRET_KEY') ? 'true' : 'false') . "\n";
+        echo 'STARTBUTTON_PUBLIC_KEY is set: ' . (env('STARTBUTTON_PUBLIC_KEY') ? 'true' : 'false') . "\n";
+
         $thresholds = config('balance_thresholds.startbutton');
         $walletBalanceResponse = $startButtonAfricaService->getWalletBalance();
-        Log::info('StartButton wallet balance response: ' . json_encode($walletBalanceResponse));
+        echo 'StartButton wallet balance response: ' . json_encode($walletBalanceResponse) . "\n";
         $wallets = [];
         if ($walletBalanceResponse['success']) {
             $wallets = $walletBalanceResponse['data'];

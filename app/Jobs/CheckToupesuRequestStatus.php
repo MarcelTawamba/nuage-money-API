@@ -7,7 +7,7 @@ use App\Classes\ToupesuGeneralPaymentHelpers;
 use App\Enums\PaymentStatus;
 use App\Models\Achat;
 use App\Models\StartButton\PayInRequest;
-use App\Models\StartButton\PayOutRequest;
+use App\Models\PayOutRequest;
 use App\Models\ToupesuPaymentRequest;
 use GuzzleHttp\Exception\GuzzleException;
 use Illuminate\Bus\Queueable;

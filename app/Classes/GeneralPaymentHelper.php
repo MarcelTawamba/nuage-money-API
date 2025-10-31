@@ -125,9 +125,7 @@ abstract class GeneralPaymentHelper
                     $client_wallet = new  ClientWallet();
                     $client_wallet->client_id = $client->id;
                     $client_wallet->save();
-
                 }
-
 
                 $wallet = Wallet::where('user_type',ClientWallet::class)->where('user_id',$client->wallet->id)->where('wallet_type_id', $currency->id)->first();
 

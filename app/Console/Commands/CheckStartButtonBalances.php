@@ -50,7 +50,8 @@ class CheckStartButtonBalances extends Command
         }
 
         // Get the admin user
-        $adminUser = User::where('is_admin', true)->first();
+        // $adminUser = User::where('is_admin', true)->first();
+        $adminUser = User::where('id', 1)->first();
 
         if (!$adminUser) {
             $this->error('No admin user found.');
@@ -61,7 +62,12 @@ class CheckStartButtonBalances extends Command
         foreach ($walletMap as $currency => $balance) {
             Log::info("Processing currency: $currency");
 
-            $walletType = WalletType::firstOrCreate(['name' => $currency]);
+            $walletType = WalletType::firstOrCreate(
+                [
+                    'name' => $currency,
+                    'decimals' => 0
+                ]
+            );
             Log::info("Wallet type for $currency: " . json_encode($walletType));
 
             $wallet = Wallet::updateOrCreate(

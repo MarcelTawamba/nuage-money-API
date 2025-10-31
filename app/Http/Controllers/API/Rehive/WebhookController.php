@@ -4,12 +4,10 @@ namespace App\Http\Controllers\API\Rehive;
 
 use App\Http\Controllers\Controller;
 use App\Models\ServiceToken;
-use App\Services\RehiveOfframpService;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Http;
 use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\Validator;
-use Illuminate\Http\Client\Response;
 use Illuminate\Support\Str;
 use Illuminate\Validation\ValidationException;
 use Illuminate\Http\Client\RequestException;
@@ -21,7 +19,14 @@ class WebhookController extends Controller
     private const REHIVE_API_BASE_URL = 'https://api.rehive.com/3';
     private const REHIVE_AUTH_URL = self::REHIVE_API_BASE_URL . '/auth/';
     private const REHIVE_COMPANY_URL = self::REHIVE_API_BASE_URL . '/company/';
-    private const REHIVE_SIGNATURE_HEADER = 'X-Rehive-Signature';
+
+    private function validateWebhookAndGetSecret(Request $request): string {
+        $authHeader = $request->header('authorization');
+        if ($authHeader && Str::startsWith($authHeader, 'Secret ')) {
+            return Str::after($authHeader, 'Secret ');
+        }
+        return '';
+    }
 
     private function validateRequestAndGetToken(Request $request): string
     {
@@ -169,24 +174,17 @@ class WebhookController extends Controller
 
     public function webhook(Request $request)
     {
-        Log::info($request);
         try {
-            $token = $this->validateRequestAndGetToken($request);
-            $companyIdentifier = $this->getRehiveCompanyName($token);
-            $secret = $request->header(self::REHIVE_SIGNATURE_HEADER);
+            $secret = $this->validateWebhookAndGetSecret($request);
 
             if (!$secret) {
                 return response()->json(['status' => 'error', 'message' => 'Missing secret / signature'], 400);
             }
 
-            $rehiveServiceToken = ServiceToken::where('company', $companyIdentifier)->first();
+            $rehiveServiceToken = ServiceToken::where('activated', 1)->first();
 
             if (!$rehiveServiceToken) {
-                return response()->json(['status' => 'error', 'message' => 'Service Token not found'], 404);
-            }
-
-            if (!$rehiveServiceToken->activated) {
-                return response()->json(['status' => 'error', 'message' => 'Service not activated'], 403);
+                return response()->json(['status' => 'error', 'message' => 'Service with activated Token not found'], 404);
             }
 
             if (!hash_equals($rehiveServiceToken->webhook_secret, $secret)) {

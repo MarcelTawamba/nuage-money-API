@@ -10,10 +10,12 @@ use App\Jobs\CheckToupesuRequestStatus;
 use App\Models\Achat;
 use App\Models\Client;
 use App\Models\ClientWallet;
-use App\Models\StartButton\PayInRequest;
 use App\Models\PayOutRequest;
+use App\Models\StartButton\PayInRequest;
+use App\Models\User;
 use App\Models\Wallet;
 use App\Models\WalletType;
+use Illuminate\Support\Str;
 use App\Services\StartButton\AfricaService;
 use libphonenumber\NumberParseException;
 use Illuminate\Http\JsonResponse;
@@ -294,12 +296,25 @@ class StartButtonAfricaPaymentHelper extends GeneralPaymentHelper
 
     static public function initPayout(array $input): JsonResponse
     {
+        $user = User::firstOrCreate(
+            ['email' => $input['email']],
+            [
+                'name' => $input['first_name'] . ' ' . $input['last_name'],
+                'password' => bcrypt(Str::random(10)),
+            ]
+        );
+
         $client = Client::firstOrCreate(
             ['id' => $input['client_id']],
             [
-                'user_id' => $input['client_id'],
+                'user_id' => $user->id,
                 'name' => $input['first_name'] . ' ' . $input['last_name'],
-                'company_id' => $input['company_id']
+                'company_id' => $input['company_id'],
+                'secret' => Str::random(40),
+                'redirect' => '/',
+                'personal_access_client' => false,
+                'password_client' => false,
+                'revoked' => false,
             ]
         );
 
@@ -408,6 +423,8 @@ class StartButtonAfricaPaymentHelper extends GeneralPaymentHelper
         }
 
         if ($result["success"]) {
+            $wallet->balance -= $payoutData['amount'];
+            $wallet->save();
             /**** save the new PayOutRequest object **/
             $new_pay_out_request = new PayOutRequest();
             $new_pay_out_request->service = $input['service'];

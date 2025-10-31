@@ -46,6 +46,7 @@ class ProcessRehiveWebhook implements ShouldQueue
             'last_name' => $this->webhookData['data']['user']['last_name'],
             'user_name' => $this->webhookData['data']['user']['username'],
             'company_id' => $this->webhookData['data']['creator']['id'],
+            'email' => $this->webhookData['data']['creator']['email'],
             'service' => 'StartButton',
             'amount' => $this->webhookData['data']['total_amount'],
             'account_number' => $this->webhookData['data']['account'],

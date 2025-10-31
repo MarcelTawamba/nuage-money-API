@@ -73,7 +73,6 @@ class Client extends PassportClient
         if(strtoupper($nuage_env) === strtoupper("SANDBOX")) {
             $this->connection = env("AUTH_DB_CONNECTION", "mysql");
         }
-
     }
 
     public static array $rules = [
@@ -89,8 +88,6 @@ class Client extends PassportClient
         'updated_at' => 'nullable',
 
     ];
-
-
 
     public function company(): \Illuminate\Database\Eloquent\Relations\BelongsTo
     {
@@ -109,11 +106,9 @@ class Client extends PassportClient
 
     public static function findByRequest(Request $request = null) : ?Client
     {
-
-
         $bearerToken = request()->bearerToken();
-        $tokenId = Configuration::forUnsecuredSigner()->parser()->parse($bearerToken)->claims()->get('jti');
-        return Token::find($tokenId)->client;
+        $token = Token::where('id', Token::where('token', hash('sha256', $bearerToken))->value('id'))->first();
+        return $token ? $token->client : null;
     }
 
     public function wallet(): HasOne
@@ -129,7 +124,6 @@ class Client extends PassportClient
         }else{
             return [];
         }
-
     }
 
     public function transactions($limit = null)
@@ -143,8 +137,5 @@ class Client extends PassportClient
         }else{
             return Transaction::whereIn('wallet_id',$wallet_id)->where("amount","!=",0)->limit($limit)->get();
         }
-
-
-
     }
 }

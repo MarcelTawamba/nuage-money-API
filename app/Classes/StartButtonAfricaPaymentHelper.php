@@ -8,8 +8,12 @@ use App\Events\PayInSuccessEvent;
 use App\Events\PayOutFailureEvent;
 use App\Jobs\CheckToupesuRequestStatus;
 use App\Models\Achat;
+use App\Models\Client;
+use App\Models\ClientWallet;
 use App\Models\StartButton\PayInRequest;
-use App\Models\StartButton\PayOutRequest;
+use App\Models\PayOutRequest;
+use App\Models\Wallet;
+use App\Models\WalletType;
 use App\Services\StartButton\AfricaService;
 use libphonenumber\NumberParseException;
 use Illuminate\Http\JsonResponse;
@@ -62,6 +66,7 @@ class StartButtonAfricaPaymentHelper extends GeneralPaymentHelper
     }
 
     /**
+     * initiate a PAY-IN or COLLECTION
      * @throws NumberParseException
      */
     static public function initPayment(array $input): JsonResponse
@@ -291,12 +296,21 @@ class StartButtonAfricaPaymentHelper extends GeneralPaymentHelper
     {
         /**** Create a new Achat object for this user request */
         $new_achat = new Achat();
-        $new_achat->client_id = $input["service"];
+        $new_achat->client_id = $input['client_id'];
         $new_achat->amount = -1 * $input["amount"];
         $new_achat->country = $input["country"];
         $new_achat->currency = $input["currency"];
         $new_achat->user_ref_id = $input["ref_id"];
         $new_achat->ref_id = self::generateMomentTime();
+
+        // Prepare payload for the transfer API
+        $payoutData = [
+            'amount' => $input['amount'],
+            'currency' => strtoupper($new_achat->currency),
+            'reference' => $new_achat->user_ref_id,
+            'country' => $new_achat->country,
+        ];
+        $paymentMethod = '';
 
         if (env("NUAGE_ENV", "SANDBOX") == "SANDBOX") {
             $result = [
@@ -307,27 +321,22 @@ class StartButtonAfricaPaymentHelper extends GeneralPaymentHelper
         } else {
             $startButtonAfricaService = new AfricaService();
 
-            // Prepare payload for the transfer API
-            $payoutData = [
-                'amount' => $input['amount'],
-                'currency' => strtoupper($new_achat->currency),
-                'reference' => $new_achat->user_ref_id,
-                'country' => $new_achat->country,
-            ];
-
             // Add bank or mobile money details
-            if (!empty($input['bank_code']) && !empty($input['account_number'])) {
+            if (!empty($input['metadata']) && 
+                !empty($input['metadata']['bank_code']) && 
+                !empty($input['metadata']['dest_account_number'])) {
                 $account = self::verifyAccount($input);
 
                 if (!$account["success"]) {
                     return response()->json($account);
                 }
-                $payoutData['bankCode'] = $input['bank_code'];
-                $payoutData['accountNumber'] = $input['account_number'];
+                $payoutData['bankCode'] = $input['metadata']['bank_code'];
+                $payoutData['accountNumber'] = $input['metadata']['dest_account_number'];
                 $paymentMethod = self::getPaymentMethodEnum('bank');
-            } elseif (!empty($input['MNO']) && !empty($input['msisdn'])) {
-                $payoutData['MNO'] = $input['MNO'];
-                $payoutData['msisdn'] = $input['msisdn'];
+            } elseif (!empty($input['metadata']['MNO']) && 
+                    !empty($input['metadata']['msisdn'])) {
+                $payoutData['MNO'] = $input['metadata']['MNO'];
+                $payoutData['msisdn'] = $input['metadata']['msisdn'];
                 $paymentMethod = self::getPaymentMethodEnum('mobile_money');
             } else {
                 return response()->json([
@@ -340,21 +349,31 @@ class StartButtonAfricaPaymentHelper extends GeneralPaymentHelper
 
             // check that the StartButton available balance for the given currency is > amount
             $walletBalanceResponse = $startButtonAfricaService->getWalletBalance();
-            $balance  = 0;
+            Log::info('Wallet Balance Response: ', ['walletBalanceResponse' => $walletBalanceResponse]);
+            $sbBalance  = 0;
             $result = null;
             if ($walletBalanceResponse["success"]) {
-                forEach ($walletBalanceResponse['data'] as $wallet) {
+                foreach ($walletBalanceResponse['data'] as $wallet) {
+                    if (isset($wallet['currency'])) {
+                        WalletType::updateOrCreate(
+                            ['name' => $wallet['currency']],
+                            ['decimals' => 0]
+                        );
+                    }
                     if (isset($wallet['currency']) && $wallet['currency'] === $payoutData["currency"]) {
-                        $balance = $wallet['availableBalance'];
-                        break;
+                        $sbBalance = $wallet['availableBalance'];
                     }
                 }
-                if ($balance >= $payoutData["amount"]) {
+
+                if ($sbBalance >= $payoutData["amount"]) {
+                    Log::info('MakeTrasnfer Request Payload: ', ['payoutData' => $payoutData]);
                     $result = $startButtonAfricaService->makeTransfer($payoutData);
+                    Log::info('MakeTrasnfer Response: ', ['Response' => $result]);
                 }
                 else {
                     Log::channel("slack")->info("Insufficient funds for making payout", [
-                        "walletBalance" => $walletBalanceResponse
+                        "walletBalance" => $walletBalanceResponse,
+                        "amountToPayout" => $payoutData["amount"]
                     ]);
                 }
             }
@@ -365,24 +384,53 @@ class StartButtonAfricaPaymentHelper extends GeneralPaymentHelper
         }
 
         if ($result["success"]) {
-            /**** save the new StartButtonPayOutRequest object when request created **/
-            $new_start_button_request = new PayOutRequest();
-            $new_start_button_request->account_name = $input["account_name"];
-            $new_start_button_request->account_number = $input["account_number"];
-            $new_start_button_request->status = PaymentStatus::CREATED;
-            $new_start_button_request->bank_code = $input["bank_code"] ?? null; // Can be null for mobile money
-            $new_start_button_request->mno = $input["MNO"] ?? null;
-            $new_start_button_request->msisdn = $input["msisdn"] ?? null;
+            /**** save the new balance in the wallet table **/
+            if ($result["success"]) {
+                $walletType = WalletType::where('name', $payoutData['currency'])->first();
+                if ($walletType) {
+                    $wallet = Wallet::where('user_id', $new_achat->client_id)->where('wallet_type_id', $walletType->id);
+                    if ($wallet) {
+                        $wallet->balance = $input['account_balance'];
+                        $wallet->balance -= $payoutData['amount'];
+                        $wallet->save();
+                    } else { // the wallet and the client might not exist
+                        // create and save a wallet
+                        $wallet = new Wallet();
+                        $wallet->user_id = $input['client_id'];
+                        $wallet->wallet_type_id = $walletType->id;
+                        $wallet->balance = $input['account_balance'];
+                        $wallet->user_type = ClientWallet::class;
+                        $wallet->save();
+                        // create and save a new client to link the wallet to
+                        $client = new Client();
+                        $client->name = $input['first_name'] . ' ' . $input['last_name'];
+                        $client->user_id = $input['client_id'];
+                        $client->company_id = $input['company_id'];
+                        $client->id = $input['client_id'];
+                        $client->save();
+                    }
+                }
+            }
+            /**** save the new PayOutRequest object **/
+            $new_pay_out_request = new PayOutRequest();
+            $new_pay_out_request->service = $input['service'];
+            $new_pay_out_request->account_name = $input['user_name'];
+            $new_pay_out_request->account_number = $input['metadata']["dest_account_number"];
+            $new_pay_out_request->status = PaymentStatus::CREATED;
+            $new_pay_out_request->bank_code = $input['metadata']["bank_code"] ?? null; // is null for mobile money
+            $new_pay_out_request->mno = $input["MNO"] ?? null;
+            $new_pay_out_request->msisdn = $input["msisdn"] ?? null;
 
-            $new_start_button_request->save();
+            $new_pay_out_request->save();
 
-            $new_achat->requestable()->associate($new_start_button_request);
+            $new_achat->requestable()->associate($new_pay_out_request);
             $new_achat->status = PaymentStatus::CREATED;
             $new_achat->save();
 
+            Log::info('saving the transaction: ', ['Transaction' => $new_achat]);
             self::saveTransaction($new_achat);
 
-            CheckToupesuRequestStatus::dispatch($new_achat)->delay(now()->addSeconds(20));
+            CheckToupesuRequestStatus::dispatch($new_achat)->delay(now()->addSeconds(5));
 
             /*** return a json respond when request created ***/
             return response()->json([

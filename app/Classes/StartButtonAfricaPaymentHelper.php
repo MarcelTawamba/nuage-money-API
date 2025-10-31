@@ -425,7 +425,6 @@ class StartButtonAfricaPaymentHelper extends GeneralPaymentHelper
         if ($result["success"]) {
             $wallet->balance -= $payoutData['amount'];
             $wallet->save();
-
             /**** save the new PayOutRequest object **/
             $new_pay_out_request = new PayOutRequest();
             $new_pay_out_request->service = $input['service'];

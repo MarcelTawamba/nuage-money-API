@@ -129,23 +129,46 @@ abstract class GeneralPaymentHelper
 
                 $wallet = Wallet::where('user_type',ClientWallet::class)->where('user_id',$client->wallet->id)->where('wallet_type_id', $currency->id)->first();
 
-                $system_wallet =  Wallet::where('user_type',SystemLedger::class)->where('user_id',SystemLedger::whereName("system")->first()->id)->where('wallet_type_id', $currency->id)->first();
-                $system_fee_wallet =  Wallet::where('user_type',SystemLedger::class)->where('user_id',SystemLedger::whereName("system fee")->first()->id)->where('wallet_type_id', $currency->id)->first();
+                $systemLedger = SystemLedger::firstOrCreate(['name' => 'system'], ['description' => 'System Ledger']);
+                $systemFeeLedger = SystemLedger::firstOrCreate(['name' => 'system fee'], ['description' => 'System Fee Ledger']);
 
-                $country = CountryAvaillable::where("code", $achat->country)->first();
+                $system_wallet =  Wallet::firstOrCreate(
+                    [
+                        'user_type' => SystemLedger::class,
+                        'user_id' => $systemLedger->id,
+                        'wallet_type_id' => $currency->id,
+                    ],
+                    ['raw_balance' => 0]
+                );
+                $system_fee_wallet =  Wallet::firstOrCreate(
+                    [
+                        'user_type' => SystemLedger::class,
+                        'user_id' => $systemFeeLedger->id,
+                        'wallet_type_id' => $currency->id,
+                    ],
+                    ['raw_balance' => 0]
+                );
+
+
+                $country = CountryAvaillable::where("code", strtolower($achat->country))->first();
 
                 if($achat->requestable_type == ExchangeRequest::class){
                     $total_fee_amount = 0;
 
                 }else{
-                    $fees =  Operator::where("currency_id",$currency->id)->where("country_id",$country->id)->where("type",PayType::PAY_OUT)->first();
-                    $custom_fee = CustomFee::where("company_id",$client->company_id)->where("method_id",$fees->id)->first();
+                    $currency_id = $currency->id;
+                    $country_id = $country->id ?? 30;
+                    $fees =  Operator::where("currency_id",$currency_id)->where("country_id",$country_id)->where("type",PayType::PAY_OUT)->first();
+                    if($fees) {
+                        $custom_fee = CustomFee::where("company_id", $client->company_id)->where("method_id", $fees->id)->first();
 
-                    if($custom_fee instanceof  CustomFee){
-                        $fees = $custom_fee;
+                        if ($custom_fee instanceof CustomFee) {
+                            $fees = $custom_fee;
+                        }
+                        $total_fee_amount = $fees->fee_type == "percentage" ? -1 * $achat->amount * ($fees->fees / 100) : $fees->fees;
+                    }else{
+                        $total_fee_amount = 0;
                     }
-
-                    $total_fee_amount = $fees->fee_type == "percentage" ?  -1 *$achat->amount * ( $fees->fees / 100 ) : $fees->fees;
                 }
 
 
@@ -156,8 +179,8 @@ abstract class GeneralPaymentHelper
                 $new_transaction->reference = $achat->ref_id;
                 $new_transaction->amount = $achat->amount;
                 $new_transaction->wallet_id = $wallet->id;
-                $new_transaction->balance_before= $wallet->balance  ;
-                $new_transaction->balance_after = $wallet->balance + $achat->amount ;
+                $new_transaction->balance_before= $wallet->raw_balance  ;
+                $new_transaction->balance_after = $wallet->raw_balance + $achat->amount ;
                 $new_transaction->description = "Cash out from ".$achat->ref_id;
                 $new_transaction->achatable()->associate($achat);
                 $new_transaction->save();
@@ -169,8 +192,8 @@ abstract class GeneralPaymentHelper
                 $new_transaction_to_system->reference = $achat->ref_id;
                 $new_transaction_to_system->amount = $achat->amount;
                 $new_transaction_to_system->wallet_id = $system_wallet->id;
-                $new_transaction_to_system->balance_after = $system_wallet->balance  + $achat->amount;
-                $new_transaction_to_system->balance_before = $system_wallet->balance ;
+                $new_transaction_to_system->balance_after = $system_wallet->raw_balance  + $achat->amount;
+                $new_transaction_to_system->balance_before = $system_wallet->raw_balance ;
                 $new_transaction_to_system->achatable()->associate($achat);
                 $new_transaction_to_system->description = "System wallet Cash out from ".$achat->ref_id;
                 $new_transaction_to_system->save();
@@ -181,8 +204,8 @@ abstract class GeneralPaymentHelper
                 $new_transaction_get_system_fee_from_wallet->reference = $achat->ref_id;
                 $new_transaction_get_system_fee_from_wallet->amount = -1 * $total_fee_amount;
                 $new_transaction_get_system_fee_from_wallet->wallet_id = $wallet->id;
-                $new_transaction_get_system_fee_from_wallet->balance_after = $wallet->balance - $total_fee_amount;
-                $new_transaction_get_system_fee_from_wallet->balance_before = $wallet->balance ;
+                $new_transaction_get_system_fee_from_wallet->balance_after = $wallet->raw_balance - $total_fee_amount;
+                $new_transaction_get_system_fee_from_wallet->balance_before = $wallet->raw_balance ;
                 $new_transaction_get_system_fee_from_wallet->achatable()->associate($new_transaction);
                 $new_transaction_get_system_fee_from_wallet->description = "Fees collected for transaction ".$new_transaction->reference;
                 $new_transaction_get_system_fee_from_wallet->save();
@@ -193,31 +216,17 @@ abstract class GeneralPaymentHelper
                 $new_transaction_to_system_fee->reference = $achat->ref_id;
                 $new_transaction_to_system_fee->amount = $total_fee_amount;
                 $new_transaction_to_system_fee->wallet_id = $system_fee_wallet->id;
-                $new_transaction_to_system_fee->balance_after = $system_fee_wallet->balance + $total_fee_amount;
-                $new_transaction_to_system_fee->balance_before = $system_fee_wallet->balance ;
+                $new_transaction_to_system_fee->balance_after = $system_fee_wallet->raw_balance + $total_fee_amount;
+                $new_transaction_to_system_fee->balance_before = $system_fee_wallet->raw_balance ;
                 $new_transaction_to_system_fee->achatable()->associate($new_transaction_get_system_fee_from_wallet);
                 $new_transaction_to_system_fee->description = "Fees receive for the transaction ".$new_transaction->reference;
                 $new_transaction_to_system_fee->save();
                 $system_fee_wallet->incrementBalance($total_fee_amount);
-
-
-
             });
-
             return true;
         }catch (Exception|\Throwable $e) {
-
             info("Error has occur",["data"=>$achat,"error"=>$e]);
             return false;
-
-
         }
-
-
     }
-
-
-
-
-
 }

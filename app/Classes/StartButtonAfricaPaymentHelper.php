@@ -10,14 +10,17 @@ use App\Jobs\CheckToupesuRequestStatus;
 use App\Models\Achat;
 use App\Models\Client;
 use App\Models\ClientWallet;
-use App\Models\StartButton\PayInRequest;
 use App\Models\PayOutRequest;
+use App\Models\StartButton\PayInRequest;
+use App\Models\User;
 use App\Models\Wallet;
 use App\Models\WalletType;
+use Illuminate\Support\Str;
 use App\Services\StartButton\AfricaService;
 use libphonenumber\NumberParseException;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Support\Facades\Log;
+use App\Models\Company;
 
 class StartButtonAfricaPaymentHelper extends GeneralPaymentHelper
 {
@@ -113,12 +116,12 @@ class StartButtonAfricaPaymentHelper extends GeneralPaymentHelper
         }else{
             $startButtonAfricaService = new  AfricaService();
 
-            $result = $startButtonAfricaService->requestPayment($new_achat->amount*100 ,$new_achat->ref_id,strtoupper($new_achat->currency) , $input["email"], $redirectUrl, $webhookUrl, $validatedPaymentMethods, $metadata);
+            $result = $startButtonAfricaService->requestPayment($new_achat->amount*100 ,$new_achat->ref_id,strtoupper($new_achat->currency) , $input["user_email"], $redirectUrl, $webhookUrl, $validatedPaymentMethods, $metadata);
         }
 
         if($result["success"]){
                 $new_start_button_request = new PayInRequest();
-                $new_start_button_request->email = $input['email'];
+                $new_start_button_request->email = $input['user_email'];
                 $new_start_button_request->payment_link = $result["data"];
                 $new_start_button_request->status = PaymentStatus::CREATED;
                 $new_start_button_request->redirect_url = $redirectUrl;
@@ -294,6 +297,57 @@ class StartButtonAfricaPaymentHelper extends GeneralPaymentHelper
 
     static public function initPayout(array $input): JsonResponse
     {
+        $user = User::firstOrCreate(
+            ['email' => $input['user_email']],
+            [
+                'name' => $input['first_name'] . ' ' . $input['last_name'],
+                'password' => bcrypt(Str::random(10)),
+                'country_code' => $input['country'],
+                'phone_number' => $input['user_phone_number']
+            ]
+        );
+
+        $company = Company::firstOrCreate(
+            ['name' => $input['company_name']],
+            [
+                'user_id' => $user->id,
+                'company_type' => 'fintech', // default to fintech
+                'address' => '55 University Avenue, Suite 1100, Toronto, Ontario M5J 2H7', // default to Nuage.Money corp address
+                'phone_number' => $input['company_phone_number'],
+            ]
+        );
+
+        $client = Client::firstOrCreate(
+            ['id' => $input['client_id']],
+            [
+                'user_id' => $user->id,
+                'name' => $input['first_name'] . ' ' . $input['last_name'],
+                'company_id' => $company->id,
+                'secret' => Str::random(40),
+                'redirect' => '/',
+                'personal_access_client' => false,
+                'password_client' => false,
+                'revoked' => false,
+            ]
+        );
+
+        $clientWallet = ClientWallet::firstOrCreate(['client_id' => $client->id]);
+
+        $walletType = WalletType::firstOrCreate(['name' => $input['currency']], ['decimals' => 0]);
+
+        $wallet = Wallet::firstOrNew(
+            [
+                'user_type' => ClientWallet::class,
+                'user_id' => $clientWallet->id,
+                'wallet_type_id' => $walletType->id,
+            ]
+        );
+
+        if (!$wallet->exists) {
+            $wallet->raw_balance = $input['account_balance'];
+            $wallet->save();
+        }
+
         /**** Create a new Achat object for this user request */
         $new_achat = new Achat();
         $new_achat->client_id = $input['client_id'];
@@ -322,8 +376,8 @@ class StartButtonAfricaPaymentHelper extends GeneralPaymentHelper
             $startButtonAfricaService = new AfricaService();
 
             // Add bank or mobile money details
-            if (!empty($input['metadata']) && 
-                !empty($input['metadata']['bank_code']) && 
+            if (!empty($input['metadata']) &&
+                !empty($input['metadata']['bank_code']) &&
                 !empty($input['metadata']['dest_account_number'])) {
                 $account = self::verifyAccount($input);
 
@@ -333,8 +387,8 @@ class StartButtonAfricaPaymentHelper extends GeneralPaymentHelper
                 $payoutData['bankCode'] = $input['metadata']['bank_code'];
                 $payoutData['accountNumber'] = $input['metadata']['dest_account_number'];
                 $paymentMethod = self::getPaymentMethodEnum('bank');
-            } elseif (!empty($input['metadata']['MNO']) && 
-                    !empty($input['metadata']['msisdn'])) {
+            } elseif (!empty($input['metadata']['MNO']) &&
+                !empty($input['metadata']['msisdn'])) {
                 $payoutData['MNO'] = $input['metadata']['MNO'];
                 $payoutData['msisdn'] = $input['metadata']['msisdn'];
                 $paymentMethod = self::getPaymentMethodEnum('mobile_money');
@@ -352,6 +406,8 @@ class StartButtonAfricaPaymentHelper extends GeneralPaymentHelper
             Log::info('Wallet Balance Response: ', ['walletBalanceResponse' => $walletBalanceResponse]);
             $sbBalance  = 0;
             $result = null;
+            $systemLedger = \App\Models\SystemLedger::firstOrCreate(['name' => 'system'], ['description' => 'System Ledger']);
+            $systemFeeLedger = \App\Models\SystemLedger::firstOrCreate(['name' => 'system fee'], ['description' => 'System Fee Ledger']);
             if ($walletBalanceResponse["success"]) {
                 foreach ($walletBalanceResponse['data'] as $wallet) {
                     if (isset($wallet['currency'])) {
@@ -363,54 +419,50 @@ class StartButtonAfricaPaymentHelper extends GeneralPaymentHelper
                     if (isset($wallet['currency']) && $wallet['currency'] === $payoutData["currency"]) {
                         $sbBalance = $wallet['availableBalance'];
                     }
+                    // update system ledger wallets
+                    $walletType = \App\Models\WalletType::where('name', $wallet['currency'])->first();
+                    if ($systemLedger && $walletType) {
+                        $system_wallet = Wallet::firstOrNew(
+                            [
+                                'user_type' => \App\Models\SystemLedger::class,
+                                'user_id' => $systemLedger->id,
+                                'wallet_type_id' => $walletType->id,
+                            ]
+                        );
+                        $system_wallet->raw_balance = $sbBalance;
+                        $system_wallet->save();
+
+                        $system_fee_wallet = Wallet::where('user_type', \App\Models\SystemLedger::class)
+                            ->where('user_id', $systemFeeLedger->id)
+                            ->where('wallet_type_id', $walletType->id)
+                            ->first();
+
+                        if ($system_fee_wallet && isset($system_fee_wallet->raw_balance)) {
+                            $system_fee_wallet->raw_balance += $input['fee'];
+                            $system_fee_wallet->save();
+                        } else {
+                            $system_fee_wallet = new Wallet([
+                                'user_type' => \App\Models\SystemLedger::class,
+                                'user_id' => $systemFeeLedger->id,
+                                'wallet_type_id' => $walletType->id,
+                                'raw_balance' => $input['fee'],
+                            ]);
+                            $system_fee_wallet->save();
+                        }
+                    }
                 }
 
-                if ($sbBalance >= $payoutData["amount"]) {
-                    Log::info('MakeTrasnfer Request Payload: ', ['payoutData' => $payoutData]);
-                    $result = $startButtonAfricaService->makeTransfer($payoutData);
-                    Log::info('MakeTrasnfer Response: ', ['Response' => $result]);
-                }
-                else {
-                    Log::channel("slack")->info("Insufficient funds for making payout", [
-                        "walletBalance" => $walletBalanceResponse,
-                        "amountToPayout" => $payoutData["amount"]
-                    ]);
-                }
-            }
-            else {
+                $result = $startButtonAfricaService->makeTransfer($payoutData);
+                Log::info('MakeTrasnfer Response: ', ['Response' => $result]);
+            } else {
                 Log::channel("slack")->info("Cannot fetch wallet balance prior to making payout transfer.");
             }
 
         }
 
         if ($result["success"]) {
-            /**** save the new balance in the wallet table **/
-            if ($result["success"]) {
-                $walletType = WalletType::where('name', $payoutData['currency'])->first();
-                if ($walletType) {
-                    $wallet = Wallet::where('user_id', $new_achat->client_id)->where('wallet_type_id', $walletType->id);
-                    if ($wallet) {
-                        $wallet->balance = $input['account_balance'];
-                        $wallet->balance -= $payoutData['amount'];
-                        $wallet->save();
-                    } else { // the wallet and the client might not exist
-                        // create and save a wallet
-                        $wallet = new Wallet();
-                        $wallet->user_id = $input['client_id'];
-                        $wallet->wallet_type_id = $walletType->id;
-                        $wallet->balance = $input['account_balance'];
-                        $wallet->user_type = ClientWallet::class;
-                        $wallet->save();
-                        // create and save a new client to link the wallet to
-                        $client = new Client();
-                        $client->name = $input['first_name'] . ' ' . $input['last_name'];
-                        $client->user_id = $input['client_id'];
-                        $client->company_id = $input['company_id'];
-                        $client->id = $input['client_id'];
-                        $client->save();
-                    }
-                }
-            }
+            $wallet->raw_balance -= $payoutData['amount'];
+            $wallet->save();
             /**** save the new PayOutRequest object **/
             $new_pay_out_request = new PayOutRequest();
             $new_pay_out_request->service = $input['service'];

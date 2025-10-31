@@ -45,7 +45,11 @@ class ProcessRehiveWebhook implements ShouldQueue
             'first_name' => $this->webhookData['data']['user']['first_name'],
             'last_name' => $this->webhookData['data']['user']['last_name'],
             'user_name' => $this->webhookData['data']['user']['username'],
-            'company_id' => $this->webhookData['data']['creator']['id'],
+            'company_name' => $this->webhookData['company'],
+            'company_phone_number' => $this->webhookData['data']['creator']['mobile'] ?? '+23723456789',
+            'company_email' => $this->webhookData['data']['creator']['email'] ?? 'admin@nuage.money',
+            'user_email' => $this->webhookData['data']['user']['email'],
+            'user_phone_number' => $this->webhookData['data']['user']['mobile'] ?? '+23723456789',
             'service' => 'StartButton',
             'amount' => $this->webhookData['data']['total_amount'],
             'account_number' => $this->webhookData['data']['account'],
@@ -55,7 +59,8 @@ class ProcessRehiveWebhook implements ShouldQueue
             'reference' => $this->webhookData['data']['reference'],
             'status' => $this->webhookData['data']['status'],
             'metadata' => $this->webhookData['data']['metadata'],
-            'country' => $this->webhookData['data']['metadata']['location'] ?? 'NG',
+            'country' => $this->webhookData['data']['metadata']['location'] ?? 'NGA',
+            'fee' => $this->webhookData['data']['fee']
         ];
 
         switch ($subType) {

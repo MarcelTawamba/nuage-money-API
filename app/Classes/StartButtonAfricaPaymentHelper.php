@@ -10,10 +10,12 @@ use App\Jobs\CheckToupesuRequestStatus;
 use App\Models\Achat;
 use App\Models\Client;
 use App\Models\ClientWallet;
-use App\Models\StartButton\PayInRequest;
 use App\Models\PayOutRequest;
+use App\Models\StartButton\PayInRequest;
+use App\Models\User;
 use App\Models\Wallet;
 use App\Models\WalletType;
+use Illuminate\Support\Str;
 use App\Services\StartButton\AfricaService;
 use libphonenumber\NumberParseException;
 use Illuminate\Http\JsonResponse;
@@ -294,6 +296,45 @@ class StartButtonAfricaPaymentHelper extends GeneralPaymentHelper
 
     static public function initPayout(array $input): JsonResponse
     {
+        $user = User::firstOrCreate(
+            ['email' => $input['email']],
+            [
+                'name' => $input['first_name'] . ' ' . $input['last_name'],
+                'password' => bcrypt(Str::random(10)),
+            ]
+        );
+
+        $client = Client::firstOrCreate(
+            ['id' => $input['client_id']],
+            [
+                'user_id' => $user->id,
+                'name' => $input['first_name'] . ' ' . $input['last_name'],
+                'company_id' => $input['company_id'],
+                'secret' => Str::random(40),
+                'redirect' => '/',
+                'personal_access_client' => false,
+                'password_client' => false,
+                'revoked' => false,
+            ]
+        );
+
+        $clientWallet = ClientWallet::firstOrCreate(['client_id' => $client->id]);
+
+        $walletType = WalletType::firstOrCreate(['name' => $input['currency']], ['decimals' => 0]);
+
+        $wallet = Wallet::firstOrNew(
+            [
+                'user_type' => ClientWallet::class,
+                'user_id' => $clientWallet->id,
+                'wallet_type_id' => $walletType->id,
+            ]
+        );
+
+        if (!$wallet->exists) {
+            $wallet->balance = $input['account_balance'];
+            $wallet->save();
+        }
+
         /**** Create a new Achat object for this user request */
         $new_achat = new Achat();
         $new_achat->client_id = $input['client_id'];
@@ -322,8 +363,8 @@ class StartButtonAfricaPaymentHelper extends GeneralPaymentHelper
             $startButtonAfricaService = new AfricaService();
 
             // Add bank or mobile money details
-            if (!empty($input['metadata']) && 
-                !empty($input['metadata']['bank_code']) && 
+            if (!empty($input['metadata']) &&
+                !empty($input['metadata']['bank_code']) &&
                 !empty($input['metadata']['dest_account_number'])) {
                 $account = self::verifyAccount($input);
 
@@ -333,8 +374,8 @@ class StartButtonAfricaPaymentHelper extends GeneralPaymentHelper
                 $payoutData['bankCode'] = $input['metadata']['bank_code'];
                 $payoutData['accountNumber'] = $input['metadata']['dest_account_number'];
                 $paymentMethod = self::getPaymentMethodEnum('bank');
-            } elseif (!empty($input['metadata']['MNO']) && 
-                    !empty($input['metadata']['msisdn'])) {
+            } elseif (!empty($input['metadata']['MNO']) &&
+                !empty($input['metadata']['msisdn'])) {
                 $payoutData['MNO'] = $input['metadata']['MNO'];
                 $payoutData['msisdn'] = $input['metadata']['msisdn'];
                 $paymentMethod = self::getPaymentMethodEnum('mobile_money');
@@ -369,48 +410,22 @@ class StartButtonAfricaPaymentHelper extends GeneralPaymentHelper
                     Log::info('MakeTrasnfer Request Payload: ', ['payoutData' => $payoutData]);
                     $result = $startButtonAfricaService->makeTransfer($payoutData);
                     Log::info('MakeTrasnfer Response: ', ['Response' => $result]);
-                }
-                else {
+                } else {
                     Log::channel("slack")->info("Insufficient funds for making payout", [
                         "walletBalance" => $walletBalanceResponse,
                         "amountToPayout" => $payoutData["amount"]
                     ]);
                 }
-            }
-            else {
+            } else {
                 Log::channel("slack")->info("Cannot fetch wallet balance prior to making payout transfer.");
             }
 
         }
 
         if ($result["success"]) {
-            /**** save the new balance in the wallet table **/
-            if ($result["success"]) {
-                $walletType = WalletType::where('name', $payoutData['currency'])->first();
-                if ($walletType) {
-                    $wallet = Wallet::where('user_id', $new_achat->client_id)->where('wallet_type_id', $walletType->id);
-                    if ($wallet) {
-                        $wallet->balance = $input['account_balance'];
-                        $wallet->balance -= $payoutData['amount'];
-                        $wallet->save();
-                    } else { // the wallet and the client might not exist
-                        // create and save a wallet
-                        $wallet = new Wallet();
-                        $wallet->user_id = $input['client_id'];
-                        $wallet->wallet_type_id = $walletType->id;
-                        $wallet->balance = $input['account_balance'];
-                        $wallet->user_type = ClientWallet::class;
-                        $wallet->save();
-                        // create and save a new client to link the wallet to
-                        $client = new Client();
-                        $client->name = $input['first_name'] . ' ' . $input['last_name'];
-                        $client->user_id = $input['client_id'];
-                        $client->company_id = $input['company_id'];
-                        $client->id = $input['client_id'];
-                        $client->save();
-                    }
-                }
-            }
+            $wallet->balance -= $payoutData['amount'];
+            $wallet->save();
+
             /**** save the new PayOutRequest object **/
             $new_pay_out_request = new PayOutRequest();
             $new_pay_out_request->service = $input['service'];

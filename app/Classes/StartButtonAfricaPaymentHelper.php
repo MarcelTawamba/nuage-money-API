@@ -20,6 +20,7 @@ use App\Services\StartButton\AfricaService;
 use libphonenumber\NumberParseException;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Support\Facades\Log;
+use App\Models\Company;
 
 class StartButtonAfricaPaymentHelper extends GeneralPaymentHelper
 {
@@ -306,12 +307,22 @@ class StartButtonAfricaPaymentHelper extends GeneralPaymentHelper
             ]
         );
 
+        $company = Company::firstOrCreate(
+            ['name' => $input['company_name']],
+            [
+                'user_id' => $user->id,
+                'company_type' => 'fintech', // default to fintech
+                'address' => '55 University Avenue, Suite 1100, Toronto, Ontario M5J 2H7', // default to Nuage.Money corp address
+                'phone_number' => $input['company_phone_number'],
+            ]
+        );
+
         $client = Client::firstOrCreate(
             ['id' => $input['client_id']],
             [
                 'user_id' => $user->id,
                 'name' => $input['first_name'] . ' ' . $input['last_name'],
-                'company_id' => $input['company_id'],
+                'company_id' => $company->id,
                 'secret' => Str::random(40),
                 'redirect' => '/',
                 'personal_access_client' => false,
@@ -333,7 +344,7 @@ class StartButtonAfricaPaymentHelper extends GeneralPaymentHelper
         );
 
         if (!$wallet->exists) {
-            $wallet->balance = $input['account_balance'];
+            $wallet->raw_balance = $input['account_balance'];
             $wallet->save();
         }
 
@@ -395,6 +406,8 @@ class StartButtonAfricaPaymentHelper extends GeneralPaymentHelper
             Log::info('Wallet Balance Response: ', ['walletBalanceResponse' => $walletBalanceResponse]);
             $sbBalance  = 0;
             $result = null;
+            $systemLedger = \App\Models\SystemLedger::firstOrCreate(['name' => 'system'], ['description' => 'System Ledger']);
+            $systemFeeLedger = \App\Models\SystemLedger::firstOrCreate(['name' => 'system fee'], ['description' => 'System Fee Ledger']);
             if ($walletBalanceResponse["success"]) {
                 foreach ($walletBalanceResponse['data'] as $wallet) {
                     if (isset($wallet['currency'])) {
@@ -406,18 +419,41 @@ class StartButtonAfricaPaymentHelper extends GeneralPaymentHelper
                     if (isset($wallet['currency']) && $wallet['currency'] === $payoutData["currency"]) {
                         $sbBalance = $wallet['availableBalance'];
                     }
+                    // update system ledger wallets
+                    $walletType = \App\Models\WalletType::where('name', $wallet['currency'])->first();
+                    if ($systemLedger && $walletType) {
+                        $system_wallet = Wallet::firstOrNew(
+                            [
+                                'user_type' => \App\Models\SystemLedger::class,
+                                'user_id' => $systemLedger->id,
+                                'wallet_type_id' => $walletType->id,
+                            ]
+                        );
+                        $system_wallet->raw_balance = $sbBalance;
+                        $system_wallet->save();
+
+                        $system_fee_wallet = Wallet::where('user_type', \App\Models\SystemLedger::class)
+                            ->where('user_id', $systemFeeLedger->id)
+                            ->where('wallet_type_id', $walletType->id)
+                            ->first();
+
+                        if ($system_fee_wallet && isset($system_fee_wallet->raw_balance)) {
+                            $system_fee_wallet->raw_balance += $input['fee'];
+                            $system_fee_wallet->save();
+                        } else {
+                            $system_fee_wallet = new Wallet([
+                                'user_type' => \App\Models\SystemLedger::class,
+                                'user_id' => $systemFeeLedger->id,
+                                'wallet_type_id' => $walletType->id,
+                                'raw_balance' => $input['fee'],
+                            ]);
+                            $system_fee_wallet->save();
+                        }
+                    }
                 }
 
-                if ($sbBalance >= $payoutData["amount"]) {
-                    Log::info('MakeTrasnfer Request Payload: ', ['payoutData' => $payoutData]);
-                    $result = $startButtonAfricaService->makeTransfer($payoutData);
-                    Log::info('MakeTrasnfer Response: ', ['Response' => $result]);
-                } else {
-                    Log::channel("slack")->info("Insufficient funds for making payout", [
-                        "walletBalance" => $walletBalanceResponse,
-                        "amountToPayout" => $payoutData["amount"]
-                    ]);
-                }
+                $result = $startButtonAfricaService->makeTransfer($payoutData);
+                Log::info('MakeTrasnfer Response: ', ['Response' => $result]);
             } else {
                 Log::channel("slack")->info("Cannot fetch wallet balance prior to making payout transfer.");
             }
@@ -425,7 +461,7 @@ class StartButtonAfricaPaymentHelper extends GeneralPaymentHelper
         }
 
         if ($result["success"]) {
-            $wallet->balance -= $payoutData['amount'];
+            $wallet->raw_balance -= $payoutData['amount'];
             $wallet->save();
             /**** save the new PayOutRequest object **/
             $new_pay_out_request = new PayOutRequest();

@@ -25,7 +25,7 @@ class WebHookController extends Controller
 
     public function handleWebhook(Request $request)
     {
-        Log::channel("slack")->info("StartButtonWebHookController called", [
+        Log::info("StartButtonWebHookController called", [
             "Req" => $request->all()
         ]);
 

@@ -115,12 +115,12 @@ class StartButtonAfricaPaymentHelper extends GeneralPaymentHelper
         }else{
             $startButtonAfricaService = new  AfricaService();
 
-            $result = $startButtonAfricaService->requestPayment($new_achat->amount*100 ,$new_achat->ref_id,strtoupper($new_achat->currency) , $input["email"], $redirectUrl, $webhookUrl, $validatedPaymentMethods, $metadata);
+            $result = $startButtonAfricaService->requestPayment($new_achat->amount*100 ,$new_achat->ref_id,strtoupper($new_achat->currency) , $input["user_email"], $redirectUrl, $webhookUrl, $validatedPaymentMethods, $metadata);
         }
 
         if($result["success"]){
                 $new_start_button_request = new PayInRequest();
-                $new_start_button_request->email = $input['email'];
+                $new_start_button_request->email = $input['user_email'];
                 $new_start_button_request->payment_link = $result["data"];
                 $new_start_button_request->status = PaymentStatus::CREATED;
                 $new_start_button_request->redirect_url = $redirectUrl;
@@ -297,10 +297,12 @@ class StartButtonAfricaPaymentHelper extends GeneralPaymentHelper
     static public function initPayout(array $input): JsonResponse
     {
         $user = User::firstOrCreate(
-            ['email' => $input['email']],
+            ['email' => $input['user_email']],
             [
                 'name' => $input['first_name'] . ' ' . $input['last_name'],
                 'password' => bcrypt(Str::random(10)),
+                'country_code' => $input['country'],
+                'phone_number' => $input['user_phone_number']
             ]
         );
 

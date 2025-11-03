@@ -482,8 +482,6 @@ class StartButtonAfricaPaymentHelper extends GeneralPaymentHelper
             Log::info('saving the transaction: ', ['Transaction' => $new_achat]);
             self::saveTransaction($new_achat);
 
-            CheckToupesuRequestStatus::dispatch($new_achat)->delay(now()->addSeconds(5));
-
             /*** return a json respond when request created ***/
             return response()->json([
                 "pay_token" => $new_achat->ref_id,

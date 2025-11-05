@@ -251,14 +251,14 @@ class StartButtonAfricaPaymentHelper extends GeneralPaymentHelper
 
             $result = $startButtonAfricaService->checkTransaction($achat->ref_id);
         }
-        Log::channel("slack")->info("StartButtonWebHookController Data is OK and recevied", [
+        Log::info("StartButtonWebHookController Data is OK and recevied", [
             "Data" => $result
         ]);
 
 
         if($result["success"] ){
-            $achat->status = PaymentStatus::getStatus(strtoupper($result["data"]->transaction->status));
-            $achat->requestable->status = PaymentStatus::getStatus(strtoupper($result["data"]->transaction->status));
+            $achat->status = PaymentStatus::getStatus(strtoupper($result['data']['transaction']['status']));
+            $achat->requestable->status = $achat->status;
 
             if( $achat->status == PaymentStatus::FAILED ){
                 PayOutFailureEvent::dispatch($achat);
@@ -350,7 +350,7 @@ class StartButtonAfricaPaymentHelper extends GeneralPaymentHelper
 
         // Prepare payload for the transfer API
         $payoutData = [
-            'amount' => $input['amount'],
+            'amount' => -1 * $input['amount'],
             'currency' => strtoupper($new_achat->currency),
             'reference' => $new_achat->user_ref_id,
             'country' => $new_achat->country,
@@ -374,10 +374,10 @@ class StartButtonAfricaPaymentHelper extends GeneralPaymentHelper
                     'bank_code' => $input['metadata']['bank_code'],
                     'account_number' => $input['metadata']['dest_account_number'],
                     'country' => $input['country'],
-                    'account_name' => $input['user_name']
+                    'account_name' => $input['metadata']['dest_account_name']
                 ];
                 $account = self::verifyAccount($verificationData);
-                Log::info('Account verification result:', ['result' => $account]);
+                Log::info('Bank Account verification result:', ['result' => $account]);
 
                 if (!$account["success"]) {
                     return response()->json($account);
@@ -387,6 +387,19 @@ class StartButtonAfricaPaymentHelper extends GeneralPaymentHelper
                 $paymentMethod = self::getPaymentMethodEnum('bank');
             } elseif (!empty($input['metadata']['MNO']) &&
                 !empty($input['metadata']['msisdn'])) {
+                $verificationData = [
+                    'bank_code' => '000',
+                    'account_number' => $input['metadata']['msisdn'],
+                    'country' => $input['country'],
+                    'account_name' => $input['metadata']['dest_account_name']
+                ];
+                $account = self::verifyAccount($verificationData);
+                Log::info('Mobile Money Account verification result:', ['result' => $account]);
+
+                if (!$account["success"]) {
+                    return response()->json($account);
+                }
+
                 $payoutData['MNO'] = $input['metadata']['MNO'];
                 $payoutData['msisdn'] = $input['metadata']['msisdn'];
                 $paymentMethod = self::getPaymentMethodEnum('mobile_money');
@@ -413,18 +426,18 @@ class StartButtonAfricaPaymentHelper extends GeneralPaymentHelper
             $systemLedger = \App\Models\SystemLedger::firstOrCreate(['name' => 'system'], ['description' => 'System Ledger']);
             $systemFeeLedger = \App\Models\SystemLedger::firstOrCreate(['name' => 'system fee'], ['description' => 'System Fee Ledger']);
             if ($walletBalanceResponse["success"]) {
-                foreach ($walletBalanceResponse['data'] as $wallet) {
-                    if (isset($wallet['currency'])) {
+                foreach ($walletBalanceResponse['data'] as $walletData) {
+                    if (isset($walletData['currency'])) {
                         WalletType::updateOrCreate(
-                            ['name' => $wallet['currency']],
+                            ['name' => $walletData['currency']],
                             ['decimals' => 0]
                         );
                     }
-                    if (isset($wallet['currency']) && $wallet['currency'] === $payoutData["currency"]) {
-                        $sbBalance = $wallet['availableBalance'];
+                    if (isset($walletData['currency']) && $walletData['currency'] === $payoutData["currency"]) {
+                        $sbBalance = $walletData['availableBalance'] / 100;
                     }
                     // update system ledger wallets
-                    $walletType = \App\Models\WalletType::where('name', $wallet['currency'])->first();
+                    $walletType = \App\Models\WalletType::where('name', $walletData['currency'])->first();
                     if ($systemLedger && $walletType) {
                         $system_wallet = Wallet::firstOrNew(
                             [
@@ -528,7 +541,7 @@ class StartButtonAfricaPaymentHelper extends GeneralPaymentHelper
             $account = $startButtonAfricaService->bankAccountValidation($input['bank_code'],$input["account_number"],$input["country"]);
 
             if($account["success"]){
-                similar_text(strtolower($input["account_name"]), strtolower($account["data"]->account_name), $percent);
+                similar_text(strtolower($input['account_name']), strtolower($account['data']['account_name']), $percent);
                 if($percent < 80){
                     $result = [
                         "success"=> false,

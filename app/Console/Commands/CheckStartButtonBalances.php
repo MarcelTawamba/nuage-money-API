@@ -10,6 +10,8 @@ use App\Services\StartButton\AfricaService;
 use Illuminate\Console\Command;
 use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\Notification;
+use Illuminate\Support\Facades\Hash;
+use Illuminate\Support\Str;
 
 class CheckStartButtonBalances extends Command
 {
@@ -49,13 +51,20 @@ class CheckStartButtonBalances extends Command
             }
         }
 
-        // Get the admin user
-        // $adminUser = User::where('is_admin', true)->first();
-        $adminUser = User::where('id', 1)->first();
+        $adminUser = User::where('is_admin', true)->first();
 
         if (!$adminUser) {
-            $this->error('No admin user found.');
-            return;
+            $adminUser = User::create([
+                'name' => 'admin',
+                'email' => 'admin@nuage.money',
+                'password' => Hash::make(Str::random(10)),
+                'is_admin' => true,
+                'email_verified_at' => now(),
+                'phone_number' => Str::random(10),
+                'country_code' => 'US',
+                'account_type' => 'individual',
+            ]);
+            $this->info('Admin user created.');
         }
 
         // Save the balances to the database

@@ -111,6 +111,14 @@ class AfricaService
      * @return array
      */
     public function bankAccountValidation(string $bankCode, string $accountNumber, string $countryCode) {
+        switch ($countryCode) {
+            case 'GHS':
+                $countryCode = 'GH';
+                break;
+            case 'NGA':
+                $countryCode = 'NGN';
+                break;
+        }
         $eendpoint = $this->base_url."/bank/verify?bankCode=".$bankCode."&accountNumber=".$accountNumber."&countryCode=".$countryCode;
 
         $request = $this->http_secret()->get($eendpoint);

@@ -2,8 +2,8 @@
 
 namespace App\Services\StartButton;
 
-use http\Exception\RuntimeException;
 use Illuminate\Support\Facades\Http;
+use Illuminate\Support\Facades\Log;
 
 class AfricaService
 {
@@ -56,9 +56,7 @@ class AfricaService
             $eendpoint .= "&countryCode=" . $countryCode;
         }
 
-        $request = $this->http_secret()->get($eendpoint);
-
-        return $this->requestTreatment($request);
+        return $this->http_secret()->get($eendpoint);
     }
 
     /**
@@ -99,9 +97,7 @@ class AfricaService
             $postingData['metadata'] = $metadata;
         }
 
-        $request = $this->http_public()->post($eendpoint, $postingData);
-
-        return $this->requestTreatment($request);
+        return $this->http_public()->post($eendpoint, $postingData);
     }
 
 
@@ -121,9 +117,7 @@ class AfricaService
         }
         $eendpoint = $this->base_url."/bank/verify?bankCode=".$bankCode."&accountNumber=".$accountNumber."&countryCode=".$countryCode;
 
-        $request = $this->http_secret()->get($eendpoint);
-
-        return $this->requestTreatment($request);
+        return $this->http_secret()->get($eendpoint);
     }
 
     /**
@@ -138,8 +132,7 @@ class AfricaService
     {
         $data['amount'] = $data['amount'] * 100;
         $endpoint = $this->base_url . "/transaction/transfer";
-        $request = $this->http_secret()->post($endpoint, $data);
-        return $this->requestTreatment($request);
+        return $this->http_secret()->post($endpoint, $data);
     }
 
     /**
@@ -147,15 +140,13 @@ class AfricaService
     public function getWalletBalance()
     {
         $endpoint = $this->base_url . "/wallet";
-        $request = $this->http_secret()->get($endpoint);
-        return $this->requestTreatment($request);
+        return $this->http_secret()->get($endpoint);
     }
 
     public function convertFunds(array $data)
     {
         $endpoint = $this->base_url . "/transaction";
-        $request = $this->http_secret()->post($endpoint, $data);
-        return $this->requestTreatment($request);
+        return $this->http_secret()->post($endpoint, $data);
     }
 
     /**
@@ -166,31 +157,7 @@ class AfricaService
     {
         $endpoint = $this->base_url."/transaction/status/".$reference;
 
-        $request = $this->http_secret()->get($endpoint);
-
-        return $this->requestTreatment($request);
+        return $this->http_secret()->get($endpoint);
     }
 
-
-    /**
-     * @param \GuzzleHttp\Promise\PromiseInterface|\Illuminate\Http\Client\Response $request
-     * @return array
-     */
-    private function
-    requestTreatment(\GuzzleHttp\Promise\PromiseInterface|\Illuminate\Http\Client\Response $request): array
-    {
-        if ($request->ok() && $request->object()?->success === true) {
-            return [
-                "success" => true,
-                "data" => $request->object()->data
-            ];
-        } else {
-            $responseObject = $request->object();
-            $errorMessage = $responseObject ? $responseObject->message : $request->body();
-            return [
-                "success" => false,
-                "data" => $errorMessage
-            ];
-        }
-    }
 }

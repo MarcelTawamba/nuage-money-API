@@ -86,7 +86,7 @@ class CheckStartButtonBalances extends Command
                     'wallet_type_id' => $walletType->id,
                 ],
                 [
-                    'balance' => $balance,
+                    'balance' => $balance / 100,
                 ]
             );
             Log::info("Wallet for $currency: " . json_encode($wallet));

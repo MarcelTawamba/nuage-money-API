@@ -26,7 +26,7 @@ class TransferService
             'status' => $data->transaction->status,
             'fee_amount' => ($data->transaction->feeAmount ?? 0) / 100,
             'merchant_id' => $data->transaction->merchantId,
-            'transaction_reference' => $data->transaction->transactionReference,
+            'transaction_reference' => $data->transaction->userTransactionReference,
             'gateway_reference' => $data->transaction->gatewayReference ?? null,
             'amount' => $data->transaction->amount / 100,
             'currency' => $data->transaction->currency,
@@ -34,10 +34,10 @@ class TransferService
             'authorization_code' => $data->authorizationCode ?? null,
         ]);
 
-        Log::channel('slack')->info('StartButton Transfer record created', ['transfer' => $transfer]);
+        Log::info('StartButton Transfer record created', ['transfer' => $transfer]);
 
         // Find the original Achat record
-        $achat = Achat::where('user_ref_id', $transfer->transaction_reference)->first();
+        $achat = Achat::where('ref_id', $transfer->transaction_reference)->first();
 
         if ($achat instanceof Achat) {
             $newStatus = PaymentStatus::getStatus($transfer->status);
@@ -70,8 +70,11 @@ class TransferService
                         'account' => config('services.rehive.operational_accounts.' . $achat->currency),
                     ],
                 ];
+                Log::info('Sending status update to Rehive', ['transactions' => $transactions]);
                 $this->rehiveService->updateTransactionStatus($transactions, strtolower($newStatus));
             }
+        } else {
+            Log::error('No Transaction found for the provided reference', ['transfer_data' => $data]);
         }
     }
 }

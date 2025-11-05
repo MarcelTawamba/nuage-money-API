@@ -6,6 +6,7 @@ use App\Enums\PaymentMethod;
 use App\Enums\PaymentStatus;
 use App\Events\PayInSuccessEvent;
 use App\Events\PayOutFailureEvent;
+use App\Jobs\CheckStartButtonTransactionJob;
 use App\Jobs\CheckToupesuRequestStatus;
 use App\Models\Achat;
 use App\Models\Client;
@@ -256,21 +257,11 @@ class StartButtonAfricaPaymentHelper extends GeneralPaymentHelper
 
 
         if($result["success"] ){
+            $achat->status = PaymentStatus::getStatus(strtoupper($result["data"]->transaction->status));
+            $achat->requestable->status = PaymentStatus::getStatus(strtoupper($result["data"]->transaction->status));
 
-            if( PaymentStatus::getStatus($result["data"]->transaction->status) == PaymentStatus::FAILED){
-
-                $achat->status = PaymentStatus::FAILED;
-                $achat->requestable->status = PaymentStatus::FAILED;
+            if( $achat->status == PaymentStatus::FAILED ){
                 PayOutFailureEvent::dispatch($achat);
-
-            }elseif (PaymentStatus::getStatus($result["data"]->transaction->status) ==   PaymentStatus::SUCCESSFUL){
-                // Successful payment
-                $achat->status = PaymentStatus::SUCCESSFUL;
-                $achat->requestable->status = PaymentStatus::SUCCESSFUL;
-            }else{
-                $achat->requestable->status = PaymentStatus::PENDING;
-
-                $achat->status = PaymentStatus::PENDING;
             }
 
             $achat->save();
@@ -280,7 +271,7 @@ class StartButtonAfricaPaymentHelper extends GeneralPaymentHelper
                 "amount"=> $achat->amount,
                 "status"=>$achat->status,
                 "ref_id"=> $achat->user_ref_id,
-                "payment_method"=> PaymentMethod::START_BUTTON_BANK,
+                "payment_method"=> is_null($achat->requestable->bank_code) ? PaymentMethod::START_BUTTON_MOBILE : PaymentMethod::START_BUTTON_BANK,
                 "success"=>true
             ];
         }
@@ -290,13 +281,13 @@ class StartButtonAfricaPaymentHelper extends GeneralPaymentHelper
             "amount"=> $achat->amount,
             "status"=>$achat->status,
             "ref_id"=> $achat->user_ref_id,
-            "success"=>true,
-            "payment_method"=> PaymentMethod::START_BUTTON_BANK,
+            "payment_method"=> is_null($achat->requestable->bank_code) ? PaymentMethod::START_BUTTON_MOBILE : PaymentMethod::START_BUTTON_BANK,
         ];
     }
 
     static public function initPayout(array $input): JsonResponse
     {
+        Log::info('Initiating payout with data:', ['input' => $input]);
         $user = User::firstOrCreate(
             ['email' => $input['user_email']],
             [
@@ -379,7 +370,14 @@ class StartButtonAfricaPaymentHelper extends GeneralPaymentHelper
             if (!empty($input['metadata']) &&
                 !empty($input['metadata']['bank_code']) &&
                 !empty($input['metadata']['dest_account_number'])) {
-                $account = self::verifyAccount($input);
+                $verificationData = [
+                    'bank_code' => $input['metadata']['bank_code'],
+                    'account_number' => $input['metadata']['dest_account_number'],
+                    'country' => $input['country'],
+                    'account_name' => $input['user_name']
+                ];
+                $account = self::verifyAccount($verificationData);
+                Log::info('Account verification result:', ['result' => $account]);
 
                 if (!$account["success"]) {
                     return response()->json($account);
@@ -400,9 +398,15 @@ class StartButtonAfricaPaymentHelper extends GeneralPaymentHelper
             }
 
             $payoutData['webhookUrl'] = url('/api/startbutton-callback');
+            $payoutData['reference'] = $new_achat->ref_id;
 
             // check that the StartButton available balance for the given currency is > amount
-            $walletBalanceResponse = $startButtonAfricaService->getWalletBalance();
+            try {
+                $walletBalanceResponse = $startButtonAfricaService->getWalletBalance();
+            } catch (\Exception $e) {
+                Log::error('Error getting wallet balance: ' . $e->getMessage());
+                $walletBalanceResponse = ['success' => false];
+            }
             Log::info('Wallet Balance Response: ', ['walletBalanceResponse' => $walletBalanceResponse]);
             $sbBalance  = 0;
             $result = null;
@@ -452,12 +456,12 @@ class StartButtonAfricaPaymentHelper extends GeneralPaymentHelper
                     }
                 }
 
+                Log::info('MakeTransfer Request: ', ['Request' => $payoutData]);
                 $result = $startButtonAfricaService->makeTransfer($payoutData);
-                Log::info('MakeTrasnfer Response: ', ['Response' => $result]);
+                Log::info('MakeTransfer Response: ', ['Response' => $result]);
             } else {
-                Log::channel("slack")->info("Cannot fetch wallet balance prior to making payout transfer.");
+                Log::info("Cannot fetch wallet balance prior to making payout transfer.");
             }
-
         }
 
         if ($result["success"]) {
@@ -465,11 +469,11 @@ class StartButtonAfricaPaymentHelper extends GeneralPaymentHelper
             $wallet->save();
             /**** save the new PayOutRequest object **/
             $new_pay_out_request = new PayOutRequest();
-            $new_pay_out_request->service = $input['service'];
+            $new_pay_out_request->service = $paymentMethod;
             $new_pay_out_request->account_name = $input['user_name'];
             $new_pay_out_request->account_number = $input['metadata']["dest_account_number"];
             $new_pay_out_request->status = PaymentStatus::CREATED;
-            $new_pay_out_request->bank_code = $input['metadata']["bank_code"] ?? null; // is null for mobile money
+            $new_pay_out_request->bank_code = $input['metadata']['bank_code'] ?? null; // is null for mobile money
             $new_pay_out_request->mno = $input["MNO"] ?? null;
             $new_pay_out_request->msisdn = $input["msisdn"] ?? null;
 
@@ -478,6 +482,8 @@ class StartButtonAfricaPaymentHelper extends GeneralPaymentHelper
             $new_achat->requestable()->associate($new_pay_out_request);
             $new_achat->status = PaymentStatus::CREATED;
             $new_achat->save();
+
+            CheckStartButtonTransactionJob::dispatch($new_achat)->delay(now()->addSeconds(40));
 
             Log::info('saving the transaction: ', ['Transaction' => $new_achat]);
             self::saveTransaction($new_achat);
@@ -519,11 +525,10 @@ class StartButtonAfricaPaymentHelper extends GeneralPaymentHelper
 
             $startButtonAfricaService = new  AfricaService();
 
-            // TODO: get country code
-            $account = $startButtonAfricaService->bankAccountValidation($input["bank_code"],$input["account_number"],$input["country"]);
+            $account = $startButtonAfricaService->bankAccountValidation($input['bank_code'],$input["account_number"],$input["country"]);
 
             if($account["success"]){
-                similar_text(strtolower($input["account_name"]), strtolower($account["data"]->account_name),$percent );
+                similar_text(strtolower($input["account_name"]), strtolower($account["data"]->account_name), $percent);
                 if($percent < 80){
                     $result = [
                         "success"=> false,
@@ -534,7 +539,6 @@ class StartButtonAfricaPaymentHelper extends GeneralPaymentHelper
                         "success"=> true,
                         "data"=> "Account valid",
                         "message"=> "Account available",
-
                     ];
                 }
 

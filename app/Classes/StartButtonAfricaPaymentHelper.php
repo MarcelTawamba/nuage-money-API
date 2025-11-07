@@ -287,7 +287,7 @@ class StartButtonAfricaPaymentHelper extends GeneralPaymentHelper
 
     static public function initPayout(array $input): JsonResponse
     {
-        Log::info('Initiating payout with data:', ['input' => $input]);
+        Log::info('Initiating payout');
         $user = User::firstOrCreate(
             ['email' => $input['user_email']],
             [
@@ -388,7 +388,7 @@ class StartButtonAfricaPaymentHelper extends GeneralPaymentHelper
             } elseif (!empty($input['metadata']['MNO']) &&
                 !empty($input['metadata']['msisdn'])) {
                 $verificationData = [
-                    'bank_code' => '000',
+                    'bank_code' => $input['metadata']['MNO'],
                     'account_number' => $input['metadata']['msisdn'],
                     'country' => $input['country'],
                     'account_name' => $input['metadata']['dest_account_name']
@@ -420,7 +420,6 @@ class StartButtonAfricaPaymentHelper extends GeneralPaymentHelper
                 Log::error('Error getting wallet balance: ' . $e->getMessage());
                 $walletBalanceResponse = ['success' => false];
             }
-            Log::info('Wallet Balance Response: ', ['walletBalanceResponse' => $walletBalanceResponse]);
             $sbBalance  = 0;
             $result = null;
             $systemLedger = \App\Models\SystemLedger::firstOrCreate(['name' => 'system'], ['description' => 'System Ledger']);
@@ -484,7 +483,7 @@ class StartButtonAfricaPaymentHelper extends GeneralPaymentHelper
             $new_pay_out_request = new PayOutRequest();
             $new_pay_out_request->service = $paymentMethod;
             $new_pay_out_request->account_name = $input['user_name'];
-            $new_pay_out_request->account_number = $input['metadata']["dest_account_number"];
+            $new_pay_out_request->account_number = $input['metadata']["dest_account_number"] ?? $input['metadata']["msisdn"];
             $new_pay_out_request->status = PaymentStatus::CREATED;
             $new_pay_out_request->bank_code = $input['metadata']['bank_code'] ?? null; // is null for mobile money
             $new_pay_out_request->mno = $input["MNO"] ?? null;

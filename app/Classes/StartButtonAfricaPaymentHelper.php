@@ -11,17 +11,18 @@ use App\Jobs\CheckToupesuRequestStatus;
 use App\Models\Achat;
 use App\Models\Client;
 use App\Models\ClientWallet;
+use App\Models\Company;
 use App\Models\PayOutRequest;
 use App\Models\StartButton\PayInRequest;
+use App\Models\SystemLedger;
 use App\Models\User;
 use App\Models\Wallet;
 use App\Models\WalletType;
-use Illuminate\Support\Str;
 use App\Services\StartButton\AfricaService;
-use libphonenumber\NumberParseException;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Support\Facades\Log;
-use App\Models\Company;
+use Illuminate\Support\Str;
+use libphonenumber\NumberParseException;
 
 class StartButtonAfricaPaymentHelper extends GeneralPaymentHelper
 {
@@ -71,25 +72,26 @@ class StartButtonAfricaPaymentHelper extends GeneralPaymentHelper
 
     /**
      * initiate a PAY-IN or COLLECTION
+     *
      * @throws NumberParseException
      */
-    static public function initPayment(array $input): JsonResponse
+    public static function initPayment(array $input): JsonResponse
     {
-        $req = Achat::where("user_ref_id",$input["ref_id"])->where("client_id",$input["service"])->first();
+        $req = Achat::where('user_ref_id', $input['ref_id'])->where('client_id', $input['service'])->first();
 
-        if($req instanceof   Achat){
+        if ($req instanceof Achat) {
             return response()->json([
-                "success"=> false,
-                "message"=>"Duplicate ref_id"
+                'success' => false,
+                'message' => 'Duplicate ref_id',
             ]);
         }
 
-        $new_achat = new  Achat();
-        $new_achat->client_id = $input["service"];
-        $new_achat->amount = $input["amount"];
-        $new_achat->country = $input["country"];
-        $new_achat->currency = $input["currency"];
-        $new_achat->user_ref_id = $input["ref_id"];
+        $new_achat = new Achat;
+        $new_achat->client_id = $input['service'];
+        $new_achat->amount = $input['amount'];
+        $new_achat->country = $input['country'];
+        $new_achat->currency = $input['currency'];
+        $new_achat->user_ref_id = $input['ref_id'];
         $new_achat->ref_id = self::generateMomentTime();
 
         $redirectUrl = $input['redirectUrl'] ?? null;
@@ -101,109 +103,109 @@ class StartButtonAfricaPaymentHelper extends GeneralPaymentHelper
             $validatedPaymentMethods = self::getValidatedPaymentMethods($new_achat->currency, $paymentMethods);
             if (empty($validatedPaymentMethods)) {
                 return response()->json([
-                    "success" => false,
-                    "message" => "Invalid payment methods for the given currency."
+                    'success' => false,
+                    'message' => 'Invalid payment methods for the given currency.',
                 ]);
             }
         } else {
             $validatedPaymentMethods = self::getValidatedPaymentMethods($new_achat->currency, []);
         }
 
-        if(env("NUAGE_ENV","SANDBOX") == "SANDBOX"){
+        if (env('NUAGE_ENV', 'SANDBOX') == 'SANDBOX') {
             $result = [
-                "data" => "http://pay.startbutton.builditdigital.co.s3-website-eu-west-1.amazonaws.com/#/uswfao9b4v",
-                "success"=>true
+                'data' => 'http://pay.startbutton.builditdigital.co.s3-website-eu-west-1.amazonaws.com/#/uswfao9b4v',
+                'success' => true,
             ];
-        }else{
-            $startButtonAfricaService = new  AfricaService();
+        } else {
+            $startButtonAfricaService = new AfricaService;
 
-            $result = $startButtonAfricaService->requestPayment($new_achat->amount*100 ,$new_achat->ref_id,strtoupper($new_achat->currency) , $input["user_email"], $redirectUrl, $webhookUrl, $validatedPaymentMethods, $metadata);
+            $result = $startButtonAfricaService->requestPayment($new_achat->amount * 100, $new_achat->ref_id, strtoupper($new_achat->currency), $input['user_email'], $redirectUrl, $webhookUrl, $validatedPaymentMethods, $metadata);
         }
 
-        if($result["success"]){
-                $new_start_button_request = new PayInRequest();
-                $new_start_button_request->email = $input['user_email'];
-                $new_start_button_request->payment_link = $result["data"];
-                $new_start_button_request->status = PaymentStatus::CREATED;
-                $new_start_button_request->redirect_url = $redirectUrl;
-                $new_start_button_request->webhook_url = $webhookUrl;
-                $new_start_button_request->payment_methods = $validatedPaymentMethods;
-                $new_start_button_request->metadata = $metadata;
+        if ($result['success']) {
+            $new_start_button_request = new PayInRequest;
+            $new_start_button_request->email = $input['user_email'];
+            $new_start_button_request->payment_link = $result['data'];
+            $new_start_button_request->status = PaymentStatus::CREATED;
+            $new_start_button_request->redirect_url = $redirectUrl;
+            $new_start_button_request->webhook_url = $webhookUrl;
+            $new_start_button_request->payment_methods = $validatedPaymentMethods;
+            $new_start_button_request->metadata = $metadata;
 
-                $new_start_button_request->save();
+            $new_start_button_request->save();
 
-                $new_achat->requestable()->associate( $new_start_button_request);
-                $new_achat->status= PaymentStatus::CREATED;
-                $new_achat->save();
+            $new_achat->requestable()->associate($new_start_button_request);
+            $new_achat->status = PaymentStatus::CREATED;
+            $new_achat->save();
 
-                CheckToupesuRequestStatus::dispatch($new_achat)->delay(now()->addSeconds(40));
+            CheckToupesuRequestStatus::dispatch($new_achat)->delay(now()->addSeconds(40));
 
-                $paymentMethod = self::getPaymentMethodEnum($validatedPaymentMethods[0]);
+            $paymentMethod = self::getPaymentMethodEnum($validatedPaymentMethods[0]);
 
-                /*** return a json respond when request created ***/
-                return response()->json([
-                    "pay_token"=> $new_achat->ref_id,
-                    "amount"=> $new_achat->amount,
-                    "ref_id"=> $new_achat->user_ref_id,
-                    "payment_link"=> $new_start_button_request->payment_link,
-                    "payment_method"=> $paymentMethod,
-                    "status"=>$new_achat->status,
-                    "success"=>true,
-                ]);
+            /*** return a json respond when request created ***/
+            return response()->json([
+                'pay_token' => $new_achat->ref_id,
+                'amount' => $new_achat->amount,
+                'ref_id' => $new_achat->user_ref_id,
+                'payment_link' => $new_start_button_request->payment_link,
+                'payment_method' => $paymentMethod,
+                'status' => $new_achat->status,
+                'success' => true,
+            ]);
         }
 
-        Log::channel("slack")->info("Error when making pay-in", [
-            "Data" => $result
+        Log::channel('slack')->info('Error when making pay-in', [
+            'Data' => $result,
         ]);
+
         /*** return a json respond when request errors  **/
         return response()->json([
-            "success"=>false,
-            "pay_token"=> $new_achat->ref_id,
-            "ref_id"=> $new_achat->user_ref_id,
-            "amount"=> $new_achat->amount,
-            "status"=> PaymentStatus::FAILED,
-            "message"=> "Request has failed try latter"
+            'success' => false,
+            'pay_token' => $new_achat->ref_id,
+            'ref_id' => $new_achat->user_ref_id,
+            'amount' => $new_achat->amount,
+            'status' => PaymentStatus::FAILED,
+            'message' => 'Request has failed try latter',
         ]);
     }
 
-    static public function checkRequestPayments(Achat $achat): array
+    public static function checkRequestPayments(Achat $achat): array
     {
 
-        if(env("NUAGE_ENV","SANDBOX") == "SANDBOX"){
+        if (env('NUAGE_ENV', 'SANDBOX') == 'SANDBOX') {
 
-
-            $trans = new \stdClass();
+            $trans = new \stdClass;
             $trans->status = PaymentStatus::SUCCESSFUL;
 
-            $data = new \stdClass();
+            $data = new \stdClass;
             $data->transaction = $trans;
 
             $result = [
-                "success"=> true,
-                "message"=> "transfer",
-                "data"=> $data
+                'success' => true,
+                'message' => 'transfer',
+                'data' => $data,
             ];
-        }else{
+        } else {
 
-            $startButtonAfricaService = new  AfricaService();
+            $startButtonAfricaService = new AfricaService;
 
             $result = $startButtonAfricaService->checkTransaction($achat->ref_id);
         }
 
-        if($result["success"] ){
+        if ($result['success']) {
 
-            if( PaymentStatus::getStatus($result["data"]->transaction->status)  == PaymentStatus::FAILED){
+            if (PaymentStatus::getStatus($result['data']->transaction->status) == PaymentStatus::FAILED) {
 
                 $achat->status = PaymentStatus::FAILED;
                 $achat->requestable->status = PaymentStatus::FAILED;
 
-            }elseif( PaymentStatus::getStatus($result["data"]->transaction->status) == PaymentStatus::SUCCESSFUL){
+            } elseif (PaymentStatus::getStatus($result['data']->transaction->status) == PaymentStatus::SUCCESSFUL) {
                 // Successful payment
                 $achat->status = PaymentStatus::SUCCESSFUL;
                 $achat->requestable->status = PaymentStatus::SUCCESSFUL;
                 PayInSuccessEvent::dispatch($achat);
 
-            }else{
+            } else {
                 $achat->requestable->status = PaymentStatus::PENDING;
 
                 $achat->status = PaymentStatus::PENDING;
@@ -211,90 +213,90 @@ class StartButtonAfricaPaymentHelper extends GeneralPaymentHelper
 
             $achat->save();
             $achat->requestable->save();
+
             return [
-                "pay_token"=> $achat->ref_id,
-                "amount"=> $achat->amount,
-                "status"=>$achat->status,
-                "ref_id"=> $achat->user_ref_id,
-                "payment_method"=> PaymentMethod::START_BUTTON_BANK,
+                'pay_token' => $achat->ref_id,
+                'amount' => $achat->amount,
+                'status' => $achat->status,
+                'ref_id' => $achat->user_ref_id,
+                'payment_method' => PaymentMethod::START_BUTTON_BANK,
             ];
         }
 
         return [
-            "pay_token"=> $achat->ref_id,
-            "amount"=> $achat->amount,
-            "status"=>$achat->status,
-            "ref_id"=> $achat->user_ref_id,
-            "payment_method"=> PaymentMethod::START_BUTTON_BANK,
+            'pay_token' => $achat->ref_id,
+            'amount' => $achat->amount,
+            'status' => $achat->status,
+            'ref_id' => $achat->user_ref_id,
+            'payment_method' => PaymentMethod::START_BUTTON_BANK,
         ];
     }
 
-    static public function checkRequestPayout(Achat $achat): array
+    public static function checkRequestPayout(Achat $achat): array
     {
-        if(env("NUAGE_ENV","SANDBOX") == "SANDBOX"){
+        if (env('NUAGE_ENV', 'SANDBOX') == 'SANDBOX') {
 
-
-            $trans = new \stdClass();
+            $trans = new \stdClass;
             $trans->status = PaymentStatus::SUCCESSFUL;
 
-            $data = new \stdClass();
-            $data->transaction =$trans;
+            $data = new \stdClass;
+            $data->transaction = $trans;
 
             $result = [
-                "success"=> true,
-                "message"=> "transfer",
-                "data"=> $data
+                'success' => true,
+                'message' => 'transfer',
+                'data' => $data,
             ];
-        }else{
+        } else {
 
-            $startButtonAfricaService = new  AfricaService();
+            $startButtonAfricaService = new AfricaService;
 
             $result = $startButtonAfricaService->checkTransaction($achat->ref_id);
         }
-        Log::info("StartButtonWebHookController Data is OK and recevied", [
-            "Data" => $result
+        Log::info('StartButtonWebHookController Data is OK and recevied', [
+            'Data' => $result,
         ]);
 
-
-        if($result["success"] ){
+        if ($result['success']) {
             $achat->status = PaymentStatus::getStatus(strtoupper($result['data']['transaction']['status']));
             $achat->requestable->status = $achat->status;
 
-            if( $achat->status == PaymentStatus::FAILED ){
+            if ($achat->status == PaymentStatus::FAILED) {
                 PayOutFailureEvent::dispatch($achat);
             }
 
             $achat->save();
             $achat->requestable->save();
+
             return [
-                "pay_token"=> $achat->ref_id,
-                "amount"=> $achat->amount,
-                "status"=>$achat->status,
-                "ref_id"=> $achat->user_ref_id,
-                "payment_method"=> is_null($achat->requestable->bank_code) ? PaymentMethod::START_BUTTON_MOBILE : PaymentMethod::START_BUTTON_BANK,
-                "success"=>true
+                'pay_token' => $achat->ref_id,
+                'amount' => $achat->amount,
+                'status' => $achat->status,
+                'ref_id' => $achat->user_ref_id,
+                'payment_method' => is_null($achat->requestable->bank_code) ? PaymentMethod::START_BUTTON_MOBILE : PaymentMethod::START_BUTTON_BANK,
+                'success' => true,
             ];
         }
 
         return [
-            "pay_token"=> $achat->ref_id,
-            "amount"=> $achat->amount,
-            "status"=>$achat->status,
-            "ref_id"=> $achat->user_ref_id,
-            "payment_method"=> is_null($achat->requestable->bank_code) ? PaymentMethod::START_BUTTON_MOBILE : PaymentMethod::START_BUTTON_BANK,
+            'pay_token' => $achat->ref_id,
+            'amount' => $achat->amount,
+            'status' => $achat->status,
+            'ref_id' => $achat->user_ref_id,
+            'payment_method' => is_null($achat->requestable->bank_code) ? PaymentMethod::START_BUTTON_MOBILE : PaymentMethod::START_BUTTON_BANK,
         ];
     }
 
-    static public function initPayout(array $input): JsonResponse
+    public static function initPayout(array $input): JsonResponse
     {
         Log::info('Initiating payout');
         $user = User::firstOrCreate(
             ['email' => $input['user_email']],
             [
-                'name' => $input['first_name'] . ' ' . $input['last_name'],
+                'name' => $input['first_name'].' '.$input['last_name'],
                 'password' => bcrypt(Str::random(10)),
                 'country_code' => $input['country'],
-                'phone_number' => $input['user_phone_number']
+                'phone_number' => $input['user_phone_number'],
             ]
         );
 
@@ -309,16 +311,18 @@ class StartButtonAfricaPaymentHelper extends GeneralPaymentHelper
         );
 
         $client = Client::firstOrCreate(
-            ['id' => $input['client_id']],
+            ['user_id' => $user->id],
             [
                 'user_id' => $user->id,
-                'name' => $input['first_name'] . ' ' . $input['last_name'],
+                'name' => $input['first_name'].' '.$input['last_name'],
                 'company_id' => $company->id,
                 'secret' => Str::random(40),
                 'redirect' => '/',
                 'personal_access_client' => false,
                 'password_client' => false,
                 'revoked' => false,
+                'is_live' => true,
+                'main_wallet' => $input['currency'],
             ]
         );
 
@@ -329,23 +333,23 @@ class StartButtonAfricaPaymentHelper extends GeneralPaymentHelper
         $wallet = Wallet::firstOrNew(
             [
                 'user_type' => ClientWallet::class,
-                'user_id' => $clientWallet->id,
+                'user_id' => $client->id,
                 'wallet_type_id' => $walletType->id,
             ]
         );
 
-        if (!$wallet->exists) {
+        if (! $wallet->exists) {
             $wallet->raw_balance = $input['account_balance'];
             $wallet->save();
         }
 
         /**** Create a new Achat object for this user request */
-        $new_achat = new Achat();
-        $new_achat->client_id = $input['client_id'];
-        $new_achat->amount = -1 * $input["amount"];
-        $new_achat->country = $input["country"];
-        $new_achat->currency = $input["currency"];
-        $new_achat->user_ref_id = $input["ref_id"];
+        $new_achat = new Achat;
+        $new_achat->client_id = $clientWallet->client_id;
+        $new_achat->amount = -1 * $input['amount'];
+        $new_achat->country = $input['country'];
+        $new_achat->currency = $input['currency'];
+        $new_achat->user_ref_id = $input['ref_id'];
         $new_achat->ref_id = self::generateMomentTime();
 
         // Prepare payload for the transfer API
@@ -357,46 +361,46 @@ class StartButtonAfricaPaymentHelper extends GeneralPaymentHelper
         ];
         $paymentMethod = '';
 
-        if (env("NUAGE_ENV", "SANDBOX") == "SANDBOX") {
+        if (env('NUAGE_ENV', 'SANDBOX') == 'SANDBOX') {
             $result = [
-                "success" => true,
-                "message" => "transfer",
-                "data" => "processing"
+                'success' => true,
+                'message' => 'transfer',
+                'data' => 'processing',
             ];
         } else {
-            $startButtonAfricaService = new AfricaService();
+            $startButtonAfricaService = new AfricaService;
 
             // Add bank or mobile money details
-            if (!empty($input['metadata']) &&
-                !empty($input['metadata']['bank_code']) &&
-                !empty($input['metadata']['dest_account_number'])) {
+            if (! empty($input['metadata']) &&
+                ! empty($input['metadata']['bank_code']) &&
+                ! empty($input['metadata']['dest_account_number'])) {
                 $verificationData = [
                     'bank_code' => $input['metadata']['bank_code'],
                     'account_number' => $input['metadata']['dest_account_number'],
                     'country' => $input['country'],
-                    'account_name' => $input['metadata']['dest_account_name']
+                    'account_name' => $input['metadata']['dest_account_name'],
                 ];
                 $account = self::verifyAccount($verificationData);
                 Log::info('Bank Account verification result:', ['result' => $account]);
 
-                if (!$account["success"]) {
+                if (! $account['success']) {
                     return response()->json($account);
                 }
                 $payoutData['bankCode'] = $input['metadata']['bank_code'];
                 $payoutData['accountNumber'] = $input['metadata']['dest_account_number'];
                 $paymentMethod = self::getPaymentMethodEnum('bank');
-            } elseif (!empty($input['metadata']['MNO']) &&
-                !empty($input['metadata']['msisdn'])) {
+            } elseif (! empty($input['metadata']['MNO']) &&
+                ! empty($input['metadata']['msisdn'])) {
                 $verificationData = [
                     'bank_code' => $input['metadata']['MNO'],
                     'account_number' => $input['metadata']['msisdn'],
                     'country' => $input['country'],
-                    'account_name' => $input['metadata']['dest_account_name']
+                    'account_name' => $input['metadata']['dest_account_name'],
                 ];
                 $account = self::verifyAccount($verificationData);
                 Log::info('Mobile Money Account verification result:', ['result' => $account]);
 
-                if (!$account["success"]) {
+                if (! $account['success']) {
                     return response()->json($account);
                 }
 
@@ -405,8 +409,8 @@ class StartButtonAfricaPaymentHelper extends GeneralPaymentHelper
                 $paymentMethod = self::getPaymentMethodEnum('mobile_money');
             } else {
                 return response()->json([
-                    "success" => false,
-                    "message" => "Missing required bank or mobile money details for payout."
+                    'success' => false,
+                    'message' => 'Missing required bank or mobile money details for payout.',
                 ]);
             }
 
@@ -417,14 +421,19 @@ class StartButtonAfricaPaymentHelper extends GeneralPaymentHelper
             try {
                 $walletBalanceResponse = $startButtonAfricaService->getWalletBalance();
             } catch (\Exception $e) {
-                Log::error('Error getting wallet balance: ' . $e->getMessage());
+                Log::error('Error getting wallet balance: '.$e->getMessage());
                 $walletBalanceResponse = ['success' => false];
             }
-            $sbBalance  = 0;
+            $sbBalance = 0;
             $result = null;
-            $systemLedger = \App\Models\SystemLedger::firstOrCreate(['name' => 'system'], ['description' => 'System Ledger']);
-            $systemFeeLedger = \App\Models\SystemLedger::firstOrCreate(['name' => 'system fee'], ['description' => 'System Fee Ledger']);
-            if ($walletBalanceResponse["success"]) {
+            // Get or create Admin user
+            $adminUser = User::where('service_provider', 'StartButton')->first();
+            if (! $adminUser) {
+                Log::error('StartButton admin user not found. Please run the seeder.');
+                throw new \Exception('StartButton admin user not found. Please run the seeder.');
+            }
+
+            if ($walletBalanceResponse['success']) {
                 foreach ($walletBalanceResponse['data'] as $walletData) {
                     if (isset($walletData['currency'])) {
                         WalletType::updateOrCreate(
@@ -432,24 +441,24 @@ class StartButtonAfricaPaymentHelper extends GeneralPaymentHelper
                             ['decimals' => 0]
                         );
                     }
-                    if (isset($walletData['currency']) && $walletData['currency'] === $payoutData["currency"]) {
+                    if (isset($walletData['currency']) && $walletData['currency'] === $payoutData['currency']) {
                         $sbBalance = $walletData['availableBalance'] / 100;
                     }
                     // update system ledger wallets
-                    $walletType = \App\Models\WalletType::where('name', $walletData['currency'])->first();
-                    if ($systemLedger && $walletType) {
+                    $walletType = WalletType::where('name', $walletData['currency'])->first();
+                    if ($walletType) {
                         $system_wallet = Wallet::firstOrNew(
                             [
-                                'user_type' => \App\Models\SystemLedger::class,
-                                'user_id' => $systemLedger->id,
+                                'user_type' => SystemLedger::class,
+                                'user_id' => $adminUser->id,
                                 'wallet_type_id' => $walletType->id,
                             ]
                         );
                         $system_wallet->raw_balance = $sbBalance;
                         $system_wallet->save();
 
-                        $system_fee_wallet = Wallet::where('user_type', \App\Models\SystemLedger::class)
-                            ->where('user_id', $systemFeeLedger->id)
+                        $system_fee_wallet = Wallet::where('user_type', SystemLedger::class)
+                            ->where('user_id', $adminUser->id)
                             ->where('wallet_type_id', $walletType->id)
                             ->first();
 
@@ -458,8 +467,8 @@ class StartButtonAfricaPaymentHelper extends GeneralPaymentHelper
                             $system_fee_wallet->save();
                         } else {
                             $system_fee_wallet = new Wallet([
-                                'user_type' => \App\Models\SystemLedger::class,
-                                'user_id' => $systemFeeLedger->id,
+                                'user_type' => SystemLedger::class,
+                                'user_id' => $adminUser->id,
                                 'wallet_type_id' => $walletType->id,
                                 'raw_balance' => $input['fee'],
                             ]);
@@ -472,22 +481,22 @@ class StartButtonAfricaPaymentHelper extends GeneralPaymentHelper
                 $result = $startButtonAfricaService->makeTransfer($payoutData);
                 Log::info('MakeTransfer Response: ', ['Response' => $result]);
             } else {
-                Log::info("Cannot fetch wallet balance prior to making payout transfer.");
+                Log::info('Cannot fetch wallet balance prior to making payout transfer.');
             }
         }
 
-        if ($result["success"]) {
+        if ($result['success']) {
             $wallet->raw_balance -= $payoutData['amount'];
             $wallet->save();
             /**** save the new PayOutRequest object **/
-            $new_pay_out_request = new PayOutRequest();
+            $new_pay_out_request = new PayOutRequest;
             $new_pay_out_request->service = $paymentMethod;
             $new_pay_out_request->account_name = $input['user_name'];
-            $new_pay_out_request->account_number = $input['metadata']["dest_account_number"] ?? $input['metadata']["msisdn"];
+            $new_pay_out_request->account_number = $input['metadata']['dest_account_number'] ?? $input['metadata']['msisdn'];
             $new_pay_out_request->status = PaymentStatus::CREATED;
             $new_pay_out_request->bank_code = $input['metadata']['bank_code'] ?? null; // is null for mobile money
-            $new_pay_out_request->mno = $input["MNO"] ?? null;
-            $new_pay_out_request->msisdn = $input["msisdn"] ?? null;
+            $new_pay_out_request->mno = $input['MNO'] ?? null;
+            $new_pay_out_request->msisdn = $input['msisdn'] ?? null;
 
             $new_pay_out_request->save();
 
@@ -502,71 +511,72 @@ class StartButtonAfricaPaymentHelper extends GeneralPaymentHelper
 
             /*** return a json respond when request created ***/
             return response()->json([
-                "pay_token" => $new_achat->ref_id,
-                "amount" => -1 * $new_achat->amount,
-                "ref_id" => $new_achat->user_ref_id,
-                "payment_method" => $paymentMethod,
-                "status" => $new_achat->status,
-                "success" => true
+                'pay_token' => $new_achat->ref_id,
+                'amount' => -1 * $new_achat->amount,
+                'ref_id' => $new_achat->user_ref_id,
+                'payment_method' => $paymentMethod,
+                'status' => $new_achat->status,
+                'success' => true,
             ]);
         }
 
         /*** return a json respond when request errors  **/
-        Log::channel("slack")->info("Error when making payout", [
-            "Data" => $result
+        Log::channel('slack')->info('Error when making payout', [
+            'Data' => $result,
         ]);
+
         return response()->json([
-            "pay_token" => $new_achat->ref_id,
-            "ref_id" => $new_achat->user_ref_id,
-            "amount" => -1 * $new_achat->amount,
-            "status" => PaymentStatus::FAILED,
-            "message" => "Payment has failed try latter",
-            "success" => false
+            'pay_token' => $new_achat->ref_id,
+            'ref_id' => $new_achat->user_ref_id,
+            'amount' => -1 * $new_achat->amount,
+            'status' => PaymentStatus::FAILED,
+            'message' => 'Payment has failed try latter',
+            'success' => false,
         ]);
     }
 
-    static public function verifyAccount(array $input): array
+    public static function verifyAccount(array $input): array
     {
-        if(env("NUAGE_ENV","SANDBOX") == "SANDBOX"){
+        if (env('NUAGE_ENV', 'SANDBOX') == 'SANDBOX') {
             $result = [
-                "success"=> true,
-                "data"=> "Account available",
+                'success' => true,
+                'data' => 'Account available',
 
             ];
-        }else{
+        } else {
 
-            $startButtonAfricaService = new  AfricaService();
+            $startButtonAfricaService = new AfricaService;
 
-            $account = $startButtonAfricaService->bankAccountValidation($input['bank_code'],$input["account_number"],$input["country"]);
+            $account = $startButtonAfricaService->bankAccountValidation($input['bank_code'], $input['account_number'], $input['country']);
 
-            if($account["success"]){
+            if ($account['success']) {
                 similar_text(strtolower($input['account_name']), strtolower($account['data']['account_name']), $percent);
-                if($percent < 80){
+                if ($percent < 80) {
                     $result = [
-                        "success"=> false,
-                        "message"=> "Information does not match",
+                        'success' => false,
+                        'message' => 'Information does not match',
                     ];
-                }else{
+                } else {
                     $result = [
-                        "success"=> true,
-                        "data"=> "Account valid",
-                        "message"=> "Account available",
+                        'success' => true,
+                        'data' => 'Account valid',
+                        'message' => 'Account available',
                     ];
                 }
 
-            }else{
+            } else {
                 $result = [
-                    "success"=> false,
-                    "message"=> "Account not resolved",
+                    'success' => false,
+                    'message' => 'Account not resolved',
                 ];
             }
         }
 
-        return  $result;
+        return $result;
     }
 
     public static function generateMomentTime(): string
     {
-        return "StartButton-". parent::UUID();
+        return 'StartButton-'.parent::UUID();
     }
 }

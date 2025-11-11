@@ -34,7 +34,7 @@ class ProcessRehiveWebhook implements ShouldQueue
      */
     public function handle(StartButtonAfricaPaymentHelper $startButtonAfricaPaymentHelper)
     {
-        Log::info('***JOB: Processing Rehive webhook event:', ['event' => $this->webhookData['event']]);
+        Log::info('***JOB: Processing Rehive webhook data:', ['webhookData' => $this->webhookData]);
 
         $subType = $this->webhookData['data']['subtype'];
         Log::info('Webhook event subtype:', ['subType' => $subType]);

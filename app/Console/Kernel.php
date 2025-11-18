@@ -16,6 +16,13 @@ class Kernel extends ConsoleKernel
     {
         // $schedule->command('inspire')->hourly();
         $schedule->job(new ReadRateEmailJob())->dailyAt("7:30");
+        $schedule->command('banks:sync')->daily();
+        
+        // Check all PSP balances hourly
+        $schedule->command('balances:check-startbutton')->hourly();
+        $schedule->command('balances:check-fincra')->hourly();
+        $schedule->command('balances:check-valr')->hourly();
+        $schedule->command('balances:check-bridge')->hourly();
     }
 
     /**

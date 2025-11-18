@@ -2,7 +2,8 @@
 
 namespace App\Jobs;
 
-use App\Services\RehiveOfframpService;
+use \App\Classes\PaymentRouter;
+use App\Enums\RehiveEventType;
 use Illuminate\Bus\Queueable;
 use Illuminate\Contracts\Queue\ShouldQueue;
 use Illuminate\Foundation\Bus\Dispatchable;
@@ -31,15 +32,114 @@ class ProcessRehiveWebhook implements ShouldQueue
      *
      * @return void
      */
-    public function handle(RehiveOfframpService $rehiveOfframpService)
+    public function handle()
     {
-        Log::info('Processing Rehive webhook job:', $this->webhookData);
+        Log::info('***JOB: Processing Rehive webhook data:', ['webhookData' => $this->webhookData]);
 
-        if ($this->webhookData['event'] === 'transaction.execute') {
-            // For now, we'll just call the RehiveOfframpService.
-            // In the future, we can add logic to select the correct payment provider.
-            // like decide between Fincra, StartButton or any other Payment service provider PSP.
-            $rehiveOfframpService->processTransaction($this->webhookData);
+        $subType = $this->webhookData['data']['subtype'];
+        Log::info('Webhook event subtype:', ['subType' => $subType]);
+        $data = [
+            'ref_id' => $this->webhookData['data']['reference'] ?? $this->webhookData['id'],
+            'event' => $this->webhookData['event'],
+            'event_subtype' => $this->webhookData['data']['subtype'],
+            'client_id' => $this->webhookData['data']['user']['id'],
+            'first_name' => $this->webhookData['data']['user']['first_name'],
+            'last_name' => $this->webhookData['data']['user']['last_name'],
+            'user_name' => $this->webhookData['data']['user']['username'],
+            'company_name' => $this->webhookData['company'],
+            'company_phone_number' => $this->webhookData['data']['creator']['mobile'] ?? '+23723456789',
+            'company_email' => $this->webhookData['data']['creator']['email'] ?? 'admin@nuage.money',
+            'user_email' => $this->webhookData['data']['user']['email'],
+            'user_phone_number' => $this->webhookData['data']['user']['mobile'] ?? '+23723456789',
+            'service' => 'StartButton',
+            'amount' => $this->webhookData['data']['total_amount'] / 100,
+            'account_number' => $this->webhookData['data']['account'],
+            'account_balance' => $this->webhookData['data']['balance'],
+            'transaction_type' => $this->webhookData['data']['tx_type'],
+            'currency' => $this->webhookData['data']['currency']['code'],
+            'reference' => $this->webhookData['data']['reference'],
+            'status' => $this->webhookData['data']['status'],
+            'metadata' => $this->webhookData['data']['metadata'],
+            'country' => $this->webhookData['data']['metadata']['location'] ?? 'NGA',
+            'fee' => $this->webhookData['data']['fee']
+        ];
+
+        switch ($subType) {
+            case RehiveEventType::WITHDRAW_MANUAL:
+                // Validate critical fields before routing
+                if (empty($data['currency']) || empty($data['amount'])) {
+                    Log::error('Missing critical fields in webhook data', [
+                        'ref_id' => $data['ref_id'],
+                        'has_currency' => !empty($data['currency']),
+                        'has_amount' => !empty($data['amount'])
+                    ]);
+                    break;
+                }
+
+                // Log metadata status for debugging
+                Log::info('Processing payout with metadata', [
+                    'ref_id' => $data['ref_id'],
+                    'currency' => $data['currency'],
+                    'amount' => $data['amount'],
+                    'has_metadata' => !empty($data['metadata']),
+                    'metadata_keys' => !empty($data['metadata']) ? array_keys($data['metadata']) : []
+                ]);
+
+                // Use PaymentRouter to dynamically select best provider
+                $paymentRouter = new PaymentRouter();
+                $result = $paymentRouter->routePayout($data);
+                
+                // Log the routing result
+                Log::info('Payout routing completed', [
+                    'ref_id' => $data['ref_id'],
+                    'result' => $result->getData()
+                ]);
+                
+                break;
+
+            case RehiveEventType::CONVERSION:
+                // Validate conversion-specific fields
+                if (empty($data['currency']) || empty($data['amount'])) {
+                    Log::error('Missing critical fields in conversion request', [
+                        'ref_id' => $data['ref_id'],
+                        'has_currency' => !empty($data['currency']),
+                        'has_amount' => !empty($data['amount'])
+                    ]);
+                    break;
+                }
+
+                if (empty($data['metadata']['source_currency']) || empty($data['metadata']['dest_currency'])) {
+                    Log::error('Missing currency information in conversion metadata', [
+                        'ref_id' => $data['ref_id'],
+                        'metadata' => $data['metadata']
+                    ]);
+                    break;
+                }
+
+                Log::info('Processing currency conversion', [
+                    'ref_id' => $data['ref_id'],
+                    'from' => $data['metadata']['source_currency'],
+                    'to' => $data['metadata']['dest_currency'],
+                    'amount' => $data['amount'],
+                    'user_id' => $data['client_id']
+                ]);
+
+                // Use ConversionRouter to select best provider and execute
+                $conversionRouter = new \App\Classes\ConversionRouter();
+                $result = $conversionRouter->routeConversion($data);
+                
+                // Log the conversion result
+                Log::info('Conversion completed', [
+                    'ref_id' => $data['ref_id'],
+                    'result' => $result->getData()
+                ]);
+                
+                break;
+
+            // Add more cases for other event types here
+            default:
+                Log::warning('Unhandled Rehive webhook event subType received.', ['event.subType' => $subType]);
+                break;
         }
     }
 }

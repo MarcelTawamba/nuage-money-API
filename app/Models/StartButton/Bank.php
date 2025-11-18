@@ -1,14 +1,14 @@
 <?php
 
-namespace App\Models;
+namespace App\Models\StartButton;
 
 use Illuminate\Database\Eloquent\Model;
 
 /**
- * App\Models\StartButtonBank
+ * App\Models\StartButton\Bank
  *
  * @OA\Schema (
- *      schema="StartButtonBank",
+ *      schema="StartButton_Bank",
  *      required={"startbutton_id","name","code"},
  *      @OA\Property(
  *          property="name",
@@ -55,18 +55,18 @@ use Illuminate\Database\Eloquent\Model;
  * @property string|null $currency
  * @property \Illuminate\Support\Carbon|null $created_at
  * @property \Illuminate\Support\Carbon|null $updated_at
- * @method static \Illuminate\Database\Eloquent\Builder|StartButtonBank newModelQuery()
- * @method static \Illuminate\Database\Eloquent\Builder|StartButtonBank newQuery()
- * @method static \Illuminate\Database\Eloquent\Builder|StartButtonBank query()
- * @method static \Illuminate\Database\Eloquent\Builder|StartButtonBank whereCode($value)
- * @method static \Illuminate\Database\Eloquent\Builder|StartButtonBank whereCreatedAt($value)
- * @method static \Illuminate\Database\Eloquent\Builder|StartButtonBank whereCurrency($value)
- * @method static \Illuminate\Database\Eloquent\Builder|StartButtonBank whereId($value)
- * @method static \Illuminate\Database\Eloquent\Builder|StartButtonBank whereName($value)
- * @method static \Illuminate\Database\Eloquent\Builder|StartButtonBank whereStartbuttonId($value)
- * @method static \Illuminate\Database\Eloquent\Builder|StartButtonBank whereUpdatedAt($value)
+ * @method static \Illuminate\Database\Eloquent\Builder|Bank newModelQuery()
+ * @method static \Illuminate\Database\Eloquent\Builder|Bank newQuery()
+ * @method static \Illuminate\Database\Eloquent\Builder|Bank query()
+ * @method static \Illuminate\Database\Eloquent\Builder|Bank whereCode($value)
+ * @method static \Illuminate\Database\Eloquent\Builder|Bank whereCreatedAt($value)
+ * @method static \Illuminate\Database\Eloquent\Builder|Bank whereCurrency($value)
+ * @method static \Illuminate\Database\Eloquent\Builder|Bank whereId($value)
+ * @method static \Illuminate\Database\Eloquent\Builder|Bank whereName($value)
+ * @method static \Illuminate\Database\Eloquent\Builder|Bank whereStartbuttonId($value)
+ * @method static \Illuminate\Database\Eloquent\Builder|Bank whereUpdatedAt($value)
  * @mixin \Eloquent
- */class StartButtonBank extends Model
+ */class Bank extends Model
 {
     public $table = 'startbutton_banks';
 

@@ -11,7 +11,7 @@ use CoreProc\WalletPlus\Models\WalletType;
 use App\Models\Wallet;
 use App\Enums\PaymentStatus;
 use App\Enums\PayType;
-use App\Events\PaymentSuccessEvent;
+use App\Events\PayInSuccessEvent;
 use App\Models\Client;
 use App\Models\CountryAvaillable;
 use App\Models\Operator;
@@ -23,7 +23,7 @@ use Illuminate\Queue\InteractsWithQueue;
 use Illuminate\Queue\SerializesModels;
 use Illuminate\Support\Facades\Log;
 
-class PaymentSuccessHandler implements  ShouldQueue
+class PayInSuccessHandler implements  ShouldQueue
 {
     use Dispatchable, InteractsWithQueue, Queueable, SerializesModels;
     /**
@@ -37,7 +37,7 @@ class PaymentSuccessHandler implements  ShouldQueue
     /**
      * Handle the event.
      */
-    public function handle(PaymentSuccessEvent $event): void
+    public function handle(PayInSuccessEvent $event): void
     {
 
         $transaction = Transaction::where("reference",$event->achat->ref_id)->first();

@@ -15,6 +15,7 @@ class DatabaseSeeder extends Seeder
         $this->call(WalletTypeSeeder::class);
         $this->call(CountryAvaillableSeeder::class);
         $this->call(OperatorSeeder::class);
+        $this->call(PSPAdminUsersSeeder::class); // Seeds all PSP admin users
 
         // This seeder is from the lwwcas/laravel-countries package
         $this->call(\Lwwcas\LaravelCountries\Database\Seeders\LwwcasDatabaseSeeder::class);

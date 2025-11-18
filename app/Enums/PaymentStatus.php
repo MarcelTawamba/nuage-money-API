@@ -16,17 +16,33 @@ final class PaymentStatus extends Enum
     const SUCCESSFUL = "SUCCESSFUL";
     const PENDING = "PENDING";
     const INITIATED = "INITIATED";
+    const REVERSED = "REVERSED";
+    const PROCESSED = "PROCESSED";
+    const DECLINED = "DECLINED";
+    const VERIFIED = "VERIFIED";
 
 
     static public function  getStatus(string $value): string
     {
         $value = strtolower($value);
-        if($value == "verified" || $value == "successful" ){
-            return PaymentStatus::SUCCESSFUL;
-        }elseif($value == "failed" ){
-            return PaymentStatus::FAILED;
-        }else{
-            return PaymentStatus::PENDING;
+        switch ($value) {
+            case 'successful':
+            case 'verified':
+                return self::SUCCESSFUL;
+            case 'failed':
+                return self::FAILED;
+            case 'pending':
+                return self::PENDING;
+            case 'initiated':
+                return self::INITIATED;
+            case 'reversed':
+                return self::REVERSED;
+            case 'processed':
+                return self::PROCESSED;
+            case 'declined':
+                return self::DECLINED;
+            default:
+                return self::PENDING;
         }
     }
 }

@@ -6,8 +6,8 @@ use App\Classes\StartButtonAfricaPaymentHelper;
 use App\Classes\ToupesuGeneralPaymentHelpers;
 use App\Enums\PaymentStatus;
 use App\Models\Achat;
-use App\Models\StartButtonPayInRequest;
-use App\Models\StartButtonPayOutRequest;
+use App\Models\StartButton\PayInRequest;
+use App\Models\PayOutRequest;
 use App\Models\ToupesuPaymentRequest;
 use GuzzleHttp\Exception\GuzzleException;
 use Illuminate\Bus\Queueable;
@@ -49,12 +49,12 @@ class CheckToupesuRequestStatus implements ShouldQueue
                     $result = ToupesuGeneralPaymentHelpers::checkRequestPayout($this->achat);
                 }
 
-            }elseif($this->achat->requestable_type == StartButtonPayInRequest::class){
+            }elseif($this->achat->requestable_type == PayInRequest::class){
 
                 $result = StartButtonAfricaPaymentHelper::checkRequestPayments($this->achat);
 
 
-            }elseif($this->achat->requestable_type == StartButtonPayOutRequest::class){
+            }elseif($this->achat->requestable_type == PayOutRequest::class){
 
                 $result = StartButtonAfricaPaymentHelper::checkRequestPayout($this->achat);
             }

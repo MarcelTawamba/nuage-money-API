@@ -68,7 +68,7 @@ class GeneralHelper
             return $tokenData->token_string;
         }
 
-        \Log::channel("slack")->error("getAccessToken UNKNOW Error".$classOfToken);
+        Log::channel("slack")->error("getAccessToken UNKNOW Error".$classOfToken);
         return null;
     }
 
@@ -266,8 +266,19 @@ class GeneralHelper
 
         $msgParts = explode("_Part_", $message->getRawBody());
         $importantMsg = $msgParts[4];
-        $importantMsg = strip_html($importantMsg);
+        $importantMsg = self::strip_html($importantMsg);
         $splitingMsg = explode("inline", $importantMsg);
         return $splitingMsg[1];
+    }
+
+    /**
+     * Remove HTML tags from a string.
+     *
+     * @param string $input
+     * @return string
+     */
+    private static function strip_html(string $input): string
+    {
+        return strip_tags($input);
     }
 }

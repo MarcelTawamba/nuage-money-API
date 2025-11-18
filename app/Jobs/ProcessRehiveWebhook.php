@@ -2,7 +2,7 @@
 
 namespace App\Jobs;
 
-use App\Classes\StartButtonAfricaPaymentHelper;
+use \App\Classes\PaymentRouter;
 use App\Enums\RehiveEventType;
 use Illuminate\Bus\Queueable;
 use Illuminate\Contracts\Queue\ShouldQueue;
@@ -32,7 +32,7 @@ class ProcessRehiveWebhook implements ShouldQueue
      *
      * @return void
      */
-    public function handle(StartButtonAfricaPaymentHelper $startButtonAfricaPaymentHelper)
+    public function handle()
     {
         Log::info('***JOB: Processing Rehive webhook data:', ['webhookData' => $this->webhookData]);
 
@@ -66,8 +66,76 @@ class ProcessRehiveWebhook implements ShouldQueue
 
         switch ($subType) {
             case RehiveEventType::WITHDRAW_MANUAL:
-                $startButtonAfricaPaymentHelper->initPayout($data);
+                // Validate critical fields before routing
+                if (empty($data['currency']) || empty($data['amount'])) {
+                    Log::error('Missing critical fields in webhook data', [
+                        'ref_id' => $data['ref_id'],
+                        'has_currency' => !empty($data['currency']),
+                        'has_amount' => !empty($data['amount'])
+                    ]);
+                    break;
+                }
+
+                // Log metadata status for debugging
+                Log::info('Processing payout with metadata', [
+                    'ref_id' => $data['ref_id'],
+                    'currency' => $data['currency'],
+                    'amount' => $data['amount'],
+                    'has_metadata' => !empty($data['metadata']),
+                    'metadata_keys' => !empty($data['metadata']) ? array_keys($data['metadata']) : []
+                ]);
+
+                // Use PaymentRouter to dynamically select best provider
+                $paymentRouter = new PaymentRouter();
+                $result = $paymentRouter->routePayout($data);
+                
+                // Log the routing result
+                Log::info('Payout routing completed', [
+                    'ref_id' => $data['ref_id'],
+                    'result' => $result->getData()
+                ]);
+                
                 break;
+
+            case RehiveEventType::CONVERSION:
+                // Validate conversion-specific fields
+                if (empty($data['currency']) || empty($data['amount'])) {
+                    Log::error('Missing critical fields in conversion request', [
+                        'ref_id' => $data['ref_id'],
+                        'has_currency' => !empty($data['currency']),
+                        'has_amount' => !empty($data['amount'])
+                    ]);
+                    break;
+                }
+
+                if (empty($data['metadata']['source_currency']) || empty($data['metadata']['dest_currency'])) {
+                    Log::error('Missing currency information in conversion metadata', [
+                        'ref_id' => $data['ref_id'],
+                        'metadata' => $data['metadata']
+                    ]);
+                    break;
+                }
+
+                Log::info('Processing currency conversion', [
+                    'ref_id' => $data['ref_id'],
+                    'from' => $data['metadata']['source_currency'],
+                    'to' => $data['metadata']['dest_currency'],
+                    'amount' => $data['amount'],
+                    'user_id' => $data['client_id']
+                ]);
+
+                // Use ConversionRouter to select best provider and execute
+                $conversionRouter = new \App\Classes\ConversionRouter();
+                $result = $conversionRouter->routeConversion($data);
+                
+                // Log the conversion result
+                Log::info('Conversion completed', [
+                    'ref_id' => $data['ref_id'],
+                    'result' => $result->getData()
+                ]);
+                
+                break;
+
             // Add more cases for other event types here
             default:
                 Log::warning('Unhandled Rehive webhook event subType received.', ['event.subType' => $subType]);

@@ -344,13 +344,7 @@ class StartButtonAfricaPaymentHelper extends GeneralPaymentHelper
         }
 
         /**** Create a new Achat object for this user request */
-        $new_achat = new Achat;
-        $new_achat->client_id = $clientWallet->client_id;
-        $new_achat->amount = -1 * $input['amount'];
-        $new_achat->country = $input['country'];
-        $new_achat->currency = $input['currency'];
-        $new_achat->user_ref_id = $input['ref_id'];
-        $new_achat->ref_id = self::generateMomentTime();
+        $new_achat = self::createAchatForPayout($clientWallet->client_id, $input, 'StartButton-');
 
         // Prepare payload for the transfer API
         $payoutData = [

@@ -180,4 +180,204 @@ class FincraService
         }
     }
 
+    /**
+     * Generate a quote for currency conversion or payout
+     * @param string $sourceCurrency
+     * @param string $destinationCurrency
+     * @param float $amount
+     * @param string $transactionType - 'conversion' or 'disbursement'
+     * @param string $paymentDestination - 'fliqpay_wallet', 'bank_account', or 'mobile_money_wallet'
+     * @return object|null
+     */
+    public function generateQuote(
+        string $sourceCurrency,
+        string $destinationCurrency,
+        float $amount,
+        string $transactionType = 'conversion',
+        string $paymentDestination = 'fliqpay_wallet'
+    ) {
+        $endpoint = "{$this->baseUrl}/quotes/generate";
+        
+        $requestBody = [
+            'action' => 'send',
+            'transactionType' => $transactionType,
+            'paymentDestination' => $paymentDestination,
+            'sourceCurrency' => strtoupper($sourceCurrency),
+            'destinationCurrency' => strtoupper($destinationCurrency),
+            'business' => $this->getBusinessId(),
+            'amount' => $amount,
+            'feeBearer' => 'business',
+            'delay' => true
+        ];
+
+        $request = $this->http()->post($endpoint, $requestBody);
+
+        if ($request->ok() && $request->object()?->success === true) {
+            return $request->object()?->data;
+        }
+
+        return null;
+    }
+
+    /**
+     * Get real-time FX rates for a currency pair
+     * @param string $currencyPair - e.g., 'USD-NGN'
+     * @return object|null
+     */
+    public function getRates(string $currencyPair)
+    {
+        $endpoint = "{$this->baseUrl}/quotes/treasury-orders/rates?currencyPair={$currencyPair}";
+        
+        $request = $this->http()->get($endpoint);
+
+        if ($request->ok() && $request->object()?->success === true) {
+            return $request->object()?->data;
+        }
+
+        return null;
+    }
+
+    /**
+     * Create a payout/disbursement
+     * @param array $payoutData
+     * @return object
+     */
+    public function createPayout(array $payoutData)
+    {
+        $endpoint = "{$this->baseUrl}/disbursements/payouts";
+        
+        $requestBody = array_merge([
+            'business' => $this->getBusinessId()
+        ], $payoutData);
+
+        $request = $this->http()->post($endpoint, $requestBody);
+
+        if ($request->ok() && $request->object()?->success === true) {
+            return $request->object()?->data;
+        } else {
+            throw new RuntimeException($request->object()?->message ?? 'Payout failed');
+        }
+    }
+
+    /**
+     * Get wallet balance
+     * @return object|null
+     */
+    public function getWalletBalance()
+    {
+        $endpoint = "{$this->baseUrl}/profile/business/{$this->getBusinessId()}/wallets";
+        
+        $request = $this->http()->get($endpoint);
+
+        if ($request->ok() && $request->object()?->success === true) {
+            return $request->object()?->data;
+        }
+
+        return null;
+    }
+
+    /**
+     * Get payout status
+     * @param string $payoutReference
+     * @return object|null
+     */
+    public function getPayoutStatus(string $payoutReference)
+    {
+        $endpoint = "{$this->baseUrl}/disbursements/payouts/{$payoutReference}";
+        
+        $request = $this->http()->get($endpoint);
+
+        if ($request->ok() && $request->object()?->success === true) {
+            return $request->object()?->data;
+        }
+
+        return null;
+    }
+
+    /**
+     * Convert currency (move funds between wallets in different currencies)
+     * @param string $sourceCurrency
+     * @param string $destinationCurrency
+     * @param float $amount
+     * @param string $quoteReference - From generateQuote()
+     * @return object
+     */
+    public function convertCurrency(
+        string $sourceCurrency,
+        string $destinationCurrency,
+        float $amount,
+        string $quoteReference
+    ) {
+        $endpoint = "{$this->baseUrl}/conversions";
+        
+        $requestBody = [
+            'business' => $this->getBusinessId(),
+            'quoteReference' => $quoteReference,
+            'sourceCurrency' => strtoupper($sourceCurrency),
+            'destinationCurrency' => strtoupper($destinationCurrency),
+            'amount' => $amount
+        ];
+
+        $request = $this->http()->post($endpoint, $requestBody);
+
+        if ($request->ok() && $request->object()?->success === true) {
+            return $request->object()?->data;
+        } else {
+            throw new RuntimeException($request->object()?->message ?? 'Conversion failed');
+        }
+    }
+
+    /**
+     * Create beneficiary for payouts
+     * @param array $beneficiaryData
+     * @return object
+     */
+    public function createBeneficiary(array $beneficiaryData)
+    {
+        $endpoint = "{$this->baseUrl}/profile/beneficiaries/business/{$this->getBusinessId()}";
+        
+        $request = $this->http()->post($endpoint, $beneficiaryData);
+
+        if ($request->ok() && $request->object()?->success === true) {
+            return $request->object()?->data;
+        } else {
+            throw new RuntimeException($request->object()?->message ?? 'Failed to create beneficiary');
+        }
+    }
+
+    /**
+     * Get beneficiary by ID
+     * @param string $beneficiaryId
+     * @return object|null
+     */
+    public function getBeneficiary(string $beneficiaryId)
+    {
+        $endpoint = "{$this->baseUrl}/profile/beneficiaries/{$beneficiaryId}";
+        
+        $request = $this->http()->get($endpoint);
+
+        if ($request->ok() && $request->object()?->success === true) {
+            return $request->object()?->data;
+        }
+
+        return null;
+    }
+
+    /**
+     * List all beneficiaries
+     * @return array|null
+     */
+    public function listBeneficiaries()
+    {
+        $endpoint = "{$this->baseUrl}/profile/beneficiaries/business/{$this->getBusinessId()}";
+        
+        $request = $this->http()->get($endpoint);
+
+        if ($request->ok() && $request->object()?->success === true) {
+            return $request->object()?->data;
+        }
+
+        return null;
+    }
+
 }

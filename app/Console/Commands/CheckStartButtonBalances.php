@@ -77,7 +77,7 @@ class CheckStartButtonBalances extends Command
                     'wallet_type_id' => $walletType->id,
                 ],
                 [
-                    'balance' => $balance / 100,
+                    'raw_balance' => $balance / 100,
                 ]
             );
             Log::info("Wallet for $currency: ".json_encode($wallet));
@@ -87,8 +87,8 @@ class CheckStartButtonBalances extends Command
             $balance = $walletMap[$currency] ?? 0;
 
             if ($balance < $threshold) {
-                Notification::route('mail', 'mtawamba@nuage.money')
-                    ->notify(new LowBalanceWarning($currency, $balance, $threshold));
+                Notification::route('mail', env('BALANCE_ALERT_EMAIL', 'mtawamba@nuage.money'))
+                    ->notify(new LowBalanceWarning('StartButton', $currency, $balance, $threshold));
             }
         }
 

@@ -7,6 +7,7 @@ use App\Enums\PaymentMethod;
 use App\Enums\PaymentStatus;
 use App\Jobs\CheckToupesuRequestStatus;
 use App\Models\FincraMobilePaymentRequest;
+use Illuminate\Support\Facades\Log;
 
 use Carbon\Carbon;
 use GuzzleHttp\Exception\GuzzleException;
@@ -62,13 +63,8 @@ class FincraPaymentHelper
         $data->customer->email = "";
         $data->customer->phone = "";
 
-
-
-
-
         /*** post the request to toupesu ***/
         $result = GeneralHelper::postTo(env("FINCRA_ROOT_URL") .'/api/main/reqPayment',$data,null, env("FINCRA_API_KEY"));
-
 
         if($result->is_success  ){
 
@@ -91,10 +87,7 @@ class FincraPaymentHelper
                     "status"=>$request->status,
 
                 ]);
-
             }
-
-
         }
 
         /*** return a json respond when request errors  **/
@@ -104,21 +97,140 @@ class FincraPaymentHelper
             "amount"=> $request->amount,
             "status"=> PaymentStatus::FAILED,
         ]);
-
-
     }
 
-    public function initiatePayout(array $data)
+    public static function initPayout(array $input): \Illuminate\Http\JsonResponse
     {
-        Log::info('Initiating Fincra payout with data:', $data);
+        Log::info('Initiating Fincra payout');
 
-        // Payout logic will go here
+        // Setup user, client, and wallet
+        $setup = GeneralPaymentHelper::setupUserAndWallet($input);
+        $client = $setup['client'];
+        $wallet = $setup['wallet'];
 
-        return ['status' => 'success'];
+        // Create Achat record
+        $new_achat = GeneralPaymentHelper::createAchatForPayout($client->id, $input, 'FINCRA-');
+
+        if (env('NUAGE_ENV', 'SANDBOX') == 'SANDBOX') {
+            $result = [
+                'success' => true,
+                'message' => 'Fincra payout initiated (sandbox)',
+                'data' => 'processing',
+            ];
+        } else {
+            $fincraService = new \App\Services\Fincra\FincraService();
+
+            try {
+                // Check if metadata contains bank or mobile money details
+                if (!empty($input['metadata']['bank_code']) && 
+                    !empty($input['metadata']['dest_account_number'])) {
+                    
+                    // Bank account payout
+                    $payoutData = [
+                        'sourceCurrency' => 'NGN', // Or get from wallet
+                        'destinationCurrency' => strtoupper($input['currency']),
+                        'amount' => $input['amount'],
+                        'description' => 'Payout from Nuage',
+                        'customerReference' => $new_achat->ref_id,
+                        'beneficiary' => [
+                            'firstName' => $input['first_name'] ?? 'Customer',
+                            'lastName' => $input['last_name'] ?? '',
+                            'type' => 'individual',
+                            'accountHolderName' => $input['metadata']['dest_account_name'] ?? $input['user_name'],
+                            'accountNumber' => $input['metadata']['dest_account_number'],
+                            'bankCode' => $input['metadata']['bank_code']
+                        ],
+                        'paymentDestination' => 'bank_account'
+                    ];
+
+                    $payoutResponse = $fincraService->createPayout($payoutData);
+                    
+                    $result = [
+                        'success' => true,
+                        'message' => 'Fincra bank payout initiated',
+                        'data' => $payoutResponse,
+                    ];
+                    
+                } elseif (!empty($input['metadata']['MNO']) && 
+                          !empty($input['metadata']['msisdn'])) {
+                    
+                    // Mobile money payout
+                    $payoutData = [
+                        'sourceCurrency' => 'NGN',
+                        'destinationCurrency' => strtoupper($input['currency']),
+                        'amount' => $input['amount'],
+                        'description' => 'Payout from Nuage',
+                        'customerReference' => $new_achat->ref_id,
+                        'beneficiary' => [
+                            'firstName' => $input['first_name'] ?? 'Customer',
+                            'lastName' => $input['last_name'] ?? '',
+                            'type' => 'individual',
+                            'mobileMoneyCode' => $input['metadata']['MNO'],
+                            'phoneNumber' => $input['metadata']['msisdn']
+                        ],
+                        'paymentDestination' => 'mobile_money_wallet'
+                    ];
+
+                    $payoutResponse = $fincraService->createPayout($payoutData);
+                    
+                    $result = [
+                        'success' => true,
+                        'message' => 'Fincra mobile money payout initiated',
+                        'data' => $payoutResponse,
+                    ];
+                    
+                } else {
+                    $result = [
+                        'success' => false,
+                        'message' => 'Missing required bank or mobile money details for Fincra payout',
+                    ];
+                }
+            } catch (\Exception $e) {
+                Log::error('Fincra payout error', ['error' => $e->getMessage()]);
+                $result = [
+                    'success' => false,
+                    'message' => $e->getMessage(),
+                ];
+            }
+        }
+
+        if ($result['success']) {
+            $new_pay_out_request = new \App\Models\PayOutRequest;
+            $new_pay_out_request->service = PaymentMethod::FINCRA;
+            $new_pay_out_request->account_name = $input['user_name'];
+            $new_pay_out_request->account_number = $input['metadata']['dest_account_number'] 
+                ?? $input['metadata']['msisdn'] 
+                ?? null;
+            $new_pay_out_request->status = PaymentStatus::CREATED;
+            $new_pay_out_request->bank_code = $input['metadata']['bank_code'] ?? null;
+            $new_pay_out_request->mno = $input['metadata']['MNO'] ?? null;
+            $new_pay_out_request->msisdn = $input['metadata']['msisdn'] ?? null;
+            $new_pay_out_request->save();
+
+            $new_achat->requestable()->associate($new_pay_out_request);
+            $new_achat->status = PaymentStatus::CREATED;
+            $new_achat->save();
+
+            return response()->json([
+                'pay_token' => $new_achat->ref_id,
+                'amount' => -1 * $new_achat->amount,
+                'ref_id' => $new_achat->user_ref_id,
+                'payment_method' => PaymentMethod::FINCRA,
+                'status' => $new_achat->status,
+                'success' => true,
+            ]);
+        }
+
+        return response()->json([
+            'pay_token' => $new_achat->ref_id,
+            'ref_id' => $new_achat->user_ref_id,
+            'amount' => -1 * $new_achat->amount,
+            'status' => PaymentStatus::FAILED,
+            'message' => $result['message'] ?? 'Payment has failed',
+            'success' => false,
+        ]);
     }
-
-
-
+    
     public function generateMomentTime(int $lgt = 4): string
     {
         $date = Carbon::now();
@@ -135,6 +247,5 @@ class FincraPaymentHelper
         }
         return "Fincra".$momentTime;
     }
-
 
 }

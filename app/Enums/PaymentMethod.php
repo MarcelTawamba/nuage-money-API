@@ -19,4 +19,6 @@ final class PaymentMethod extends Enum
     const START_BUTTON_EFT = "start_button_eft";
     const START_BUTTON_QR = "start_button_qr";
     const ADMIN_DEPOSIT = "admin_deposit";
+    const VALR = "valr";
+    const BRIDGE = "bridge";
 }

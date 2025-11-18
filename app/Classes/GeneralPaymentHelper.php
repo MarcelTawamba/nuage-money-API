@@ -34,6 +34,100 @@ abstract class GeneralPaymentHelper
     abstract public static function generateMomentTime();
 
     /**
+     * Create or retrieve user, company, client, and wallet for payout
+     * This ensures consistency across all payment providers
+     * 
+     * @param array $input
+     * @return array ['user' => User, 'client' => Client, 'wallet' => Wallet, 'client_wallet' => ClientWallet]
+     */
+    public static function setupUserAndWallet(array $input): array
+    {
+        $user = User::firstOrCreate(
+            ['email' => $input['user_email']],
+            [
+                'name' => $input['first_name'].' '.$input['last_name'],
+                'password' => bcrypt(Str::random(10)),
+                'country_code' => $input['country'],
+                'phone_number' => $input['user_phone_number'] ?? null,
+            ]
+        );
+
+        $company = \App\Models\Company::firstOrCreate(
+            ['name' => $input['company_name'] ?? 'Default Company'],
+            [
+                'user_id' => $user->id,
+                'company_type' => 'fintech',
+                'address' => '55 University Avenue, Suite 1100, Toronto, Ontario M5J 2H7',
+                'phone_number' => $input['company_phone_number'] ?? $input['user_phone_number'] ?? null,
+            ]
+        );
+
+        $client = Client::firstOrCreate(
+            ['user_id' => $user->id],
+            [
+                'user_id' => $user->id,
+                'name' => $input['first_name'].' '.$input['last_name'],
+                'company_id' => $company->id,
+                'secret' => Str::random(40),
+                'redirect' => '/',
+                'personal_access_client' => false,
+                'password_client' => false,
+                'revoked' => false,
+                'is_live' => true,
+                'main_wallet' => $input['currency'],
+            ]
+        );
+
+        $clientWallet = ClientWallet::firstOrCreate(['client_id' => $client->id]);
+
+        $walletType = WalletType::firstOrCreate(
+            ['name' => $input['currency']], 
+            ['decimals' => 0]
+        );
+
+        $wallet = Wallet::firstOrNew(
+            [
+                'user_type' => ClientWallet::class,
+                'user_id' => $clientWallet->id,
+                'wallet_type_id' => $walletType->id,
+            ]
+        );
+
+        if (!$wallet->exists) {
+            $wallet->raw_balance = $input['account_balance'] ?? 0;
+            $wallet->save();
+        }
+
+        return [
+            'user' => $user,
+            'client' => $client,
+            'wallet' => $wallet,
+            'client_wallet' => $clientWallet,
+        ];
+    }
+
+    /**
+     * Create Achat record for payout with proper associations
+     * 
+     * @param int $clientId
+     * @param array $input
+     * @param string $refIdPrefix - e.g., 'BRIDGE-', 'VALR-'
+     * @return Achat
+     */
+    public static function createAchatForPayout(int $clientId, array $input, string $refIdPrefix): Achat
+    {
+        $new_achat = new Achat;
+        $new_achat->client_id = $clientId;
+        $new_achat->amount = -1 * $input['amount'];
+        $new_achat->country = $input['country'];
+        $new_achat->currency = $input['currency'];
+        $new_achat->user_ref_id = $input['ref_id'];
+        $new_achat->ref_id = $refIdPrefix . static::UUID();
+
+        return $new_achat;
+    }
+
+    /**
      * @throws Exception
      * @throws GuzzleException
      */

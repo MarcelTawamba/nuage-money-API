@@ -119,40 +119,48 @@ class BridgePaymentHelper extends GeneralPaymentHelper
                     throw new \Exception('No wallet found for currency: ' . $input['currency']);
                 }
 
-                // Create transfer based on destination type
+                // Prepare source configuration
+                $source = [
+                    'payment_rail' => $input['metadata']['source_payment_rail'] ?? 'ethereum',
+                    'currency' => $input['currency'],
+                ];
+
+                // Add bridge_wallet_id if available
+                if ($walletId) {
+                    $source['bridge_wallet_id'] = $walletId;
+                }
+
+                // Prepare destination configuration based on destination type
+                $destination = [
+                    'currency' => $input['metadata']['dest_currency'] ?? $input['currency'],
+                ];
+
                 if (!empty($input['metadata']['dest_external_account_id'])) {
                     // Transfer to external bank account
-                    $transferResponse = $bridgeService->createTransfer(
-                        'wallet',
-                        $walletId,
-                        'external_account',
-                        $input['metadata']['dest_external_account_id'],
-                        $input['amount'],
-                        $input['currency']
-                    );
+                    $destination['payment_rail'] = $input['metadata']['dest_payment_rail'] ?? 'ach';
+                    $destination['external_account_id'] = $input['metadata']['dest_external_account_id'];
                 } elseif (!empty($input['metadata']['dest_wallet_id'])) {
-                    // Transfer to another wallet
-                    $transferResponse = $bridgeService->createTransfer(
-                        'wallet',
-                        $walletId,
-                        'wallet',
-                        $input['metadata']['dest_wallet_id'],
-                        $input['amount'],
-                        $input['currency']
-                    );
+                    // Transfer to another Bridge wallet
+                    $destination['payment_rail'] = $input['metadata']['dest_payment_rail'] ?? 'ethereum';
+                    $destination['bridge_wallet_id'] = $input['metadata']['dest_wallet_id'];
                 } elseif (!empty($input['metadata']['dest_crypto_address'])) {
                     // Transfer to crypto address
-                    $transferResponse = $bridgeService->createTransfer(
-                        'wallet',
-                        $walletId,
-                        'crypto_address',
-                        $input['metadata']['dest_crypto_address'],
-                        $input['amount'],
-                        $input['currency']
-                    );
+                    $destination['payment_rail'] = $input['metadata']['dest_payment_rail'] ?? 'ethereum';
+                    $destination['to_address'] = $input['metadata']['dest_crypto_address'];
                 } else {
                     throw new \Exception('Missing destination information for Bridge transfer');
                 }
+
+                // Create transfer with new API structure
+                $transferResponse = $bridgeService->createTransfer(
+                    $customerId,
+                    $source,
+                    $destination,
+                    (string) $input['amount'],
+                    $input['metadata']['client_reference_id'] ?? null,
+                    $input['metadata']['developer_fee'] ?? null,
+                    $input['metadata']['developer_fee_percent'] ?? null
+                );
 
                 if (is_object($transferResponse) && method_exists($transferResponse, 'successful') && $transferResponse->successful()) {
                     $transferData = $transferResponse->json();

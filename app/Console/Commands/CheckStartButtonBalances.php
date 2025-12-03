@@ -52,7 +52,7 @@ class CheckStartButtonBalances extends Command
 
         $adminUser = User::where('service_provider', 'StartButton')->first();
 
-        if (! $adminUser) {
+        if (!$adminUser) {
             $this->error('StartButton admin user not found. Please run the seeder.');
 
             return;
@@ -83,14 +83,14 @@ class CheckStartButtonBalances extends Command
             Log::info("Wallet for $currency: ".json_encode($wallet));
         }
 
-        foreach ($thresholds as $currency => $threshold) {
-            $balance = $walletMap[$currency] ?? 0;
+        // foreach ($thresholds as $currency => $threshold) {
+        //     $balance = $walletMap[$currency] ?? 0;
 
-            if ($balance < $threshold) {
-                Notification::route('mail', env('BALANCE_ALERT_EMAIL', 'mtawamba@nuage.money'))
-                    ->notify(new LowBalanceWarning('StartButton', $currency, $balance, $threshold));
-            }
-        }
+        //     if ($balance < $threshold) {
+        //         Notification::route('mail', env('BALANCE_ALERT_EMAIL', 'mtawamba@nuage.money'))
+        //             ->notify(new LowBalanceWarning('StartButton', $currency, $balance, $threshold));
+        //     }
+        // }
 
         $this->info('StartButton balances checked and saved successfully.');
     }

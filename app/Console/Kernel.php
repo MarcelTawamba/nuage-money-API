@@ -20,9 +20,9 @@ class Kernel extends ConsoleKernel
         
         // Check all PSP balances hourly
         $schedule->command('balances:check-startbutton')->hourly();
-        $schedule->command('balances:check-fincra')->hourly();
-        $schedule->command('balances:check-valr')->hourly();
-        $schedule->command('balances:check-bridge')->hourly();
+        //$schedule->command('balances:check-fincra')->hourly();
+        //$schedule->command('balances:check-valr')->hourly();
+        //$schedule->command('balances:check-bridge')->hourly();
     }
 
     /**

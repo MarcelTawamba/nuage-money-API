@@ -186,19 +186,22 @@ class BridgeService
     }
 
     /**
-     * Create KYC link for a customer
-     * @param string $customerId
-     * @param string $type - kyc or kyb
+     * Create KYC link for new customer
+     * @param string $fullName - Full name of individual or business legal name
+     * @param string $email - Email address of customer
+     * @param string $type - individual or business
+     * @param array $additionalData - Optional data (endorsements, redirect_uri)
      * @param string|null $idempotencyKey - Optional existing key for retries
      * @return array
      */
-    public function createKycLink(string $customerId, string $type = "kyc", ?string $idempotencyKey = null)
+    public function createKycLink(string $fullName, string $email, string $type = "individual", array $additionalData = [], ?string $idempotencyKey = null)
     {
         $endpoint = $this->base_url . "/kyc_links";
-        $data = [
-            'customer_id' => $customerId,
+        $data = array_merge([
+            'full_name' => $fullName,
+            'email' => $email,
             'type' => $type
-        ];
+        ], $additionalData);
 
         return $this->postWithIdempotency($endpoint, $data, 'create_kyc_link', $idempotencyKey);
     }
@@ -217,14 +220,14 @@ class BridgeService
     /**
      * Create a wallet for a customer
      * @param string $customerId
-     * @param string $network - e.g., ethereum, solana, polygon
+     * @param string $chain - blockchain: base, ethereum, solana
      * @param string|null $idempotencyKey - Optional existing key for retries
      * @return array
      */
-    public function createWallet(string $customerId, string $network = "ethereum", ?string $idempotencyKey = null)
+    public function createWallet(string $customerId, string $chain = "ethereum", ?string $idempotencyKey = null)
     {
         $endpoint = $this->base_url . "/customers/{$customerId}/wallets";
-        $data = ['network' => $network];
+        $data = ['chain' => $chain];
 
         return $this->postWithIdempotency($endpoint, $data, 'create_wallet', $idempotencyKey);
     }
@@ -264,39 +267,61 @@ class BridgeService
 
     /**
      * Create a transfer
-     * @param string $sourceType - wallet, external_account, ach
-     * @param string $sourceId
-     * @param string $destinationType - wallet, external_account, crypto_address
-     * @param string $destinationId
-     * @param float $amount
-     * @param string $currency
-     * @param array $additionalData - Optional additional transfer data
+     * @param string $onBehalfOf - Customer ID on whose behalf the transfer is made
+     * @param array $source - Source configuration (currency, payment_rail, external_account_id, bridge_wallet_id, from_address, etc.)
+     * @param array $destination - Destination configuration (currency, payment_rail, external_account_id, bridge_wallet_id, to_address, wire_message, etc.)
+     * @param string|null $amount - Amount as decimal string (required unless flexible_amount feature is enabled)
+     * @param string|null $clientReferenceId - Client reference ID
+     * @param string|null $developerFee - Developer fee as decimal string
+     * @param string|null $developerFeePercent - Developer fee percent as decimal string (0.0 to 100.0)
+     * @param bool|null $dryRun - Validate transfer route without creating transfer
+     * @param array|null $features - Transfer features (flexible_amount, static_template, allow_any_from_address)
      * @param string|null $idempotencyKey - Optional existing key for retries
      * @return array
      */
     public function createTransfer(
-        string $sourceType,
-        string $sourceId,
-        string $destinationType,
-        string $destinationId,
-        float $amount,
-        string $currency,
-        array $additionalData = [],
+        string $onBehalfOf,
+        array $source,
+        array $destination,
+        ?string $amount = null,
+        ?string $clientReferenceId = null,
+        ?string $developerFee = null,
+        ?string $developerFeePercent = null,
+        ?bool $dryRun = null,
+        ?array $features = null,
         ?string $idempotencyKey = null
     ) {
         $endpoint = $this->base_url . "/transfers";
-        $data = array_merge([
-            'source' => [
-                'type' => $sourceType,
-                'id' => $sourceId
-            ],
-            'destination' => [
-                'type' => $destinationType,
-                'id' => $destinationId
-            ],
-            'amount' => $amount,
-            'currency' => $currency
-        ], $additionalData);
+        
+        $data = [
+            'on_behalf_of' => $onBehalfOf,
+            'source' => $source,
+            'destination' => $destination
+        ];
+
+        if ($amount !== null) {
+            $data['amount'] = $amount;
+        }
+
+        if ($clientReferenceId !== null) {
+            $data['client_reference_id'] = $clientReferenceId;
+        }
+
+        if ($developerFee !== null) {
+            $data['developer_fee'] = $developerFee;
+        }
+
+        if ($developerFeePercent !== null) {
+            $data['developer_fee_percent'] = $developerFeePercent;
+        }
+
+        if ($dryRun !== null) {
+            $data['dry_run'] = $dryRun;
+        }
+
+        if ($features !== null) {
+            $data['features'] = $features;
+        }
 
         return $this->postWithIdempotency($endpoint, $data, 'create_transfer', $idempotencyKey);
     }
@@ -338,27 +363,24 @@ class BridgeService
     /**
      * Create an external account (bank account)
      * @param string $customerId
-     * @param string $accountNumber
-     * @param string $routingNumber
-     * @param string $type - checking or savings
-     * @param array $additionalData
+     * @param string $currency - Currency code (usd, eur, mxn, brl, etc.)
+     * @param string $accountType - Account type (us, iban, swift, clabe, pix)
+     * @param array $accountData - Account data including bank details, owner info, address, etc.
      * @param string|null $idempotencyKey - Optional existing key for retries
      * @return array
      */
     public function createExternalAccount(
         string $customerId,
-        string $accountNumber,
-        string $routingNumber,
-        string $type = "checking",
-        array $additionalData = [],
+        string $currency,
+        string $accountType,
+        array $accountData = [],
         ?string $idempotencyKey = null
     ) {
         $endpoint = $this->base_url . "/customers/{$customerId}/external_accounts";
         $data = array_merge([
-            'account_number' => $accountNumber,
-            'routing_number' => $routingNumber,
-            'type' => $type
-        ], $additionalData);
+            'currency' => $currency,
+            'account_type' => $accountType
+        ], $accountData);
 
         return $this->postWithIdempotency($endpoint, $data, 'create_external_account', $idempotencyKey);
     }
@@ -386,82 +408,30 @@ class BridgeService
     }
 
     /**
-     * Create a payment
-     * @param string $customerId
-     * @param float $amount
-     * @param string $currency
-     * @param string $destinationType
-     * @param string $destinationId
-     * @param array $additionalData
-     * @param string|null $idempotencyKey - Optional existing key for retries
-     * @return array
-     */
-    public function createPayment(
-        string $customerId,
-        float $amount,
-        string $currency,
-        string $destinationType,
-        string $destinationId,
-        array $additionalData = [],
-        ?string $idempotencyKey = null
-    ) {
-        $endpoint = $this->base_url . "/payments";
-        $data = array_merge([
-            'customer_id' => $customerId,
-            'amount' => $amount,
-            'currency' => $currency,
-            'destination' => [
-                'type' => $destinationType,
-                'id' => $destinationId
-            ]
-        ], $additionalData);
-
-        return $this->postWithIdempotency($endpoint, $data, 'create_payment', $idempotencyKey);
-    }
-
-    /**
-     * Get payment details
-     * @param string $paymentId
-     * @return array
-     */
-    public function getPayment(string $paymentId)
-    {
-        $endpoint = $this->base_url . "/payments/{$paymentId}";
-        return $this->http()->get($endpoint);
-    }
-
-    /**
-     * List all payments
-     * @param int $limit
-     * @param string $cursor - Pagination cursor
-     * @return array
-     */
-    public function listPayments(int $limit = 100, string $cursor = null)
-    {
-        $endpoint = $this->base_url . "/payments";
-        $params = ['limit' => $limit];
-
-        if ($cursor) {
-            $params['cursor'] = $cursor;
-        }
-
-        return $this->http()->get($endpoint, $params);
-    }
-
-    /**
      * Create a virtual account for customer
      * @param string $customerId
-     * @param string $currency - USD, EUR, MXN
-     * @param array $additionalData
+     * @param array $source - Source configuration (currency: usd, eur, mxn, brl)
+     * @param array $destination - Destination configuration (currency, payment_rail, address)
+     * @param string|null $developerFeePercent - Developer fee percent as decimal string
      * @param string|null $idempotencyKey - Optional existing key for retries
      * @return array
      */
-    public function createVirtualAccount(string $customerId, string $currency = "USD", array $additionalData = [], ?string $idempotencyKey = null)
-    {
+    public function createVirtualAccount(
+        string $customerId,
+        array $source,
+        array $destination,
+        ?string $developerFeePercent = null,
+        ?string $idempotencyKey = null
+    ) {
         $endpoint = $this->base_url . "/customers/{$customerId}/virtual_accounts";
-        $data = array_merge([
-            'currency' => $currency
-        ], $additionalData);
+        $data = [
+            'source' => $source,
+            'destination' => $destination
+        ];
+
+        if ($developerFeePercent !== null) {
+            $data['developer_fee_percent'] = $developerFeePercent;
+        }
 
         return $this->postWithIdempotency($endpoint, $data, 'create_virtual_account', $idempotencyKey);
     }
@@ -533,20 +503,20 @@ class BridgeService
     }
 
     /**
-     * Create a card for customer
+     * Create a card account for customer
      * @param string $customerId
-     * @param array $cardData - Card configuration data
+     * @param array $cardAccountData - Card account data (currency, chain, crypto_account, client_reference_id, etc.)
      * @param string|null $idempotencyKey - Optional existing key for retries
      * @return array
      */
-    public function createCard(string $customerId, array $cardData = [], ?string $idempotencyKey = null)
+    public function createCard(string $customerId, array $cardAccountData = [], ?string $idempotencyKey = null)
     {
-        $endpoint = $this->base_url . "/customers/{$customerId}/cards";
-        return $this->postWithIdempotency($endpoint, $cardData, 'create_card', $idempotencyKey);
+        $endpoint = $this->base_url . "/customers/{$customerId}/card_accounts";
+        return $this->postWithIdempotency($endpoint, $cardAccountData, 'create_card_account', $idempotencyKey);
     }
 
     /**
-     * List customer cards
+     * List customer card accounts
      * @param string $customerId
      * @param int $limit
      * @param string $cursor - Pagination cursor
@@ -554,7 +524,7 @@ class BridgeService
      */
     public function getCustomerCards(string $customerId, int $limit = 100, string $cursor = null)
     {
-        $endpoint = $this->base_url . "/customers/{$customerId}/cards";
+        $endpoint = $this->base_url . "/customers/{$customerId}/card_accounts";
         $params = ['limit' => $limit];
 
         if ($cursor) {
@@ -565,25 +535,25 @@ class BridgeService
     }
 
     /**
-     * Get card details
-     * @param string $cardId
+     * Get card account details
+     * @param string $cardAccountId
      * @return array
      */
-    public function getCard(string $cardId)
+    public function getCard(string $cardAccountId)
     {
-        $endpoint = $this->base_url . "/cards/{$cardId}";
+        $endpoint = $this->base_url . "/card_accounts/{$cardAccountId}";
         return $this->http()->get($endpoint);
     }
 
     /**
-     * Update card
-     * @param string $cardId
+     * Update card account
+     * @param string $cardAccountId
      * @param array $data
      * @return array
      */
-    public function updateCard(string $cardId, array $data)
+    public function updateCard(string $cardAccountId, array $data)
     {
-        $endpoint = $this->base_url . "/cards/{$cardId}";
+        $endpoint = $this->base_url . "/card_accounts/{$cardAccountId}";
         return $this->http()->put($endpoint, $data);
     }
 
@@ -598,15 +568,47 @@ class BridgeService
     }
 
     /**
-     * Create liquidation request
-     * @param array $data - Liquidation request data
+     * Create liquidation address for customer
+     * @param string $customerId
+     * @param array $data - Liquidation address data (currency, chain, destination details, etc.)
      * @param string|null $idempotencyKey - Optional existing key for retries
      * @return array
      */
-    public function createLiquidation(array $data, ?string $idempotencyKey = null)
+    public function createLiquidationAddress(string $customerId, array $data, ?string $idempotencyKey = null)
     {
-        $endpoint = $this->base_url . "/liquidation";
-        return $this->postWithIdempotency($endpoint, $data, 'create_liquidation', $idempotencyKey);
+        $endpoint = $this->base_url . "/customers/{$customerId}/liquidation_addresses";
+        return $this->postWithIdempotency($endpoint, $data, 'create_liquidation_address', $idempotencyKey);
+    }
+
+    /**
+     * List customer liquidation addresses
+     * @param string $customerId
+     * @param int $limit
+     * @param string $cursor - Pagination cursor
+     * @return array
+     */
+    public function getCustomerLiquidationAddresses(string $customerId, int $limit = 100, string $cursor = null)
+    {
+        $endpoint = $this->base_url . "/customers/{$customerId}/liquidation_addresses";
+        $params = ['limit' => $limit];
+
+        if ($cursor) {
+            $params['cursor'] = $cursor;
+        }
+
+        return $this->http()->get($endpoint, $params);
+    }
+
+    /**
+     * Get liquidation address details
+     * @param string $customerId
+     * @param string $liquidationAddressId
+     * @return array
+     */
+    public function getLiquidationAddress(string $customerId, string $liquidationAddressId)
+    {
+        $endpoint = $this->base_url . "/customers/{$customerId}/liquidation_addresses/{$liquidationAddressId}";
+        return $this->http()->get($endpoint);
     }
 
     /**

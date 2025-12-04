@@ -42,28 +42,19 @@ class CheckStartButtonBalances extends Command
         if (isset($walletBalanceResponse['success']) && $walletBalanceResponse['success']) {
             $wallets = $walletBalanceResponse['data'];
             $this->info('Wallets retrieved: '.count($wallets));
-        } elseif (isset($walletBalanceResponse['data'])) {
-            // Handle case where response has data but no explicit success flag
-            $wallets = $walletBalanceResponse['data'];
-            $this->info('Wallets retrieved (no success flag): '.count($wallets));
         } else {
-            $responseArray = is_array($walletBalanceResponse) ? $walletBalanceResponse : $walletBalanceResponse->json();
-            $this->error('API call failed - response structure: '.json_encode(array_keys($responseArray)));
+            $this->error('API call failed - response: '.json_encode($walletBalanceResponse));
             return 1;
         }
 
         // Create a map of wallets with currency as the key
         $walletMap = [];
-        foreach ($wallets as $index => $wallet) {
-            $this->info("Wallet $index structure: ".json_encode($wallet));
-            if (isset($wallet->currency)) {
-                $walletMap[$wallet->currency] = $wallet->availableBalance;
-            } elseif (is_array($wallet) && isset($wallet['currency'])) {
+        foreach ($wallets as $wallet) {
+            if (isset($wallet['currency'])) {
                 $walletMap[$wallet['currency']] = $wallet['availableBalance'];
-            } else {
-                $this->error("Wallet $index missing currency: ".json_encode($wallet));
             }
         }
+        $this->info('Wallet map created with '.count($walletMap).' currencies: '.implode(', ', array_keys($walletMap)));
 
         $adminUser = User::where('service_provider', 'StartButton')->first();
 

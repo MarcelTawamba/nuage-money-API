@@ -84,7 +84,7 @@ class CheckStartButtonBalances extends Command
                     'wallet_type_id' => $walletType->id,
                 ],
                 [
-                    'raw_balance' => $balance / 100,
+                    'raw_balance' => $balance,
                 ]
             );
             $this->info("Saved wallet ID={$wallet->id}, user_type={$wallet->user_type}, raw_balance={$wallet->raw_balance}");

@@ -33,13 +33,18 @@ class CheckStartButtonBalances extends Command
      */
     public function handle(AfricaService $startButtonAfricaService)
     {
-        Log::info('STARTBUTTON_ROOT_URL: '.env('STARTBUTTON_ROOT_URL'));
-        $thresholds = config('balance_thresholds.startbutton');
+        $this->info('[START] CheckStartButtonBalances - STARTBUTTON_ROOT_URL: '.env('STARTBUTTON_ROOT_URL'));
+        
         $walletBalanceResponse = $startButtonAfricaService->getWalletBalance();
-        Log::info('StartButton wallet balance response: '.json_encode($walletBalanceResponse));
+        $this->info('StartButton wallet balance response: '.json_encode($walletBalanceResponse));
+        
         $wallets = [];
         if ($walletBalanceResponse['success']) {
             $wallets = $walletBalanceResponse['data'];
+            $this->info('Wallets retrieved: '.count($wallets));
+        } else {
+            $this->error('API call failed - no wallets retrieved');
+            return 1;
         }
 
         // Create a map of wallets with currency as the key
@@ -54,13 +59,15 @@ class CheckStartButtonBalances extends Command
 
         if (!$adminUser) {
             $this->error('StartButton admin user not found. Please run the seeder.');
-
-            return;
+            return 1;
         }
+        
+        $this->info('Admin user found: ID='.$adminUser->id);
 
         // Save the balances to the database
+        $this->info('Processing '.count($walletMap).' currencies');
         foreach ($walletMap as $currency => $balance) {
-            Log::info("Processing currency: $currency");
+            $this->info("Processing currency: $currency with balance: $balance");
 
             $walletType = WalletType::firstOrCreate(
                 [
@@ -68,7 +75,6 @@ class CheckStartButtonBalances extends Command
                     'decimals' => 0,
                 ]
             );
-            Log::info("Wallet type for $currency: ".json_encode($walletType));
 
             $wallet = Wallet::updateOrCreate(
                 [
@@ -80,7 +86,7 @@ class CheckStartButtonBalances extends Command
                     'raw_balance' => $balance / 100,
                 ]
             );
-            Log::info("Wallet for $currency: ".json_encode($wallet));
+            $this->info("Saved wallet ID={$wallet->id}, user_type={$wallet->user_type}, raw_balance={$wallet->raw_balance}");
         }
 
         // foreach ($thresholds as $currency => $threshold) {
@@ -92,6 +98,7 @@ class CheckStartButtonBalances extends Command
         //     }
         // }
 
-        $this->info('StartButton balances checked and saved successfully.');
+        $this->info('[DONE] StartButton balances checked and saved successfully.');
+        return 0;
     }
 }

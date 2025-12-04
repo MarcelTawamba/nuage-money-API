@@ -39,19 +39,29 @@ class CheckStartButtonBalances extends Command
         $this->info('StartButton wallet balance response: '.json_encode($walletBalanceResponse));
         
         $wallets = [];
-        if ($walletBalanceResponse['success']) {
+        if (isset($walletBalanceResponse['success']) && $walletBalanceResponse['success']) {
             $wallets = $walletBalanceResponse['data'];
             $this->info('Wallets retrieved: '.count($wallets));
+        } elseif (isset($walletBalanceResponse['data'])) {
+            // Handle case where response has data but no explicit success flag
+            $wallets = $walletBalanceResponse['data'];
+            $this->info('Wallets retrieved (no success flag): '.count($wallets));
         } else {
-            $this->error('API call failed - no wallets retrieved');
+            $responseArray = is_array($walletBalanceResponse) ? $walletBalanceResponse : $walletBalanceResponse->json();
+            $this->error('API call failed - response structure: '.json_encode(array_keys($responseArray)));
             return 1;
         }
 
         // Create a map of wallets with currency as the key
         $walletMap = [];
-        foreach ($wallets as $wallet) {
+        foreach ($wallets as $index => $wallet) {
+            $this->info("Wallet $index structure: ".json_encode($wallet));
             if (isset($wallet->currency)) {
                 $walletMap[$wallet->currency] = $wallet->availableBalance;
+            } elseif (is_array($wallet) && isset($wallet['currency'])) {
+                $walletMap[$wallet['currency']] = $wallet['availableBalance'];
+            } else {
+                $this->error("Wallet $index missing currency: ".json_encode($wallet));
             }
         }
 

@@ -112,7 +112,7 @@ class BridgeService
 
             $this->updateIdempotencyRecord($key, $response, $response->successful() ? 'completed' : 'failed');
 
-            return $response;
+            return $response->json();
         } catch (\Exception $e) {
             Log::error("Bridge API request failed with idempotency key {$key}: " . $e->getMessage());
             
@@ -123,6 +123,91 @@ class BridgeService
             
             throw $e;
         }
+    }
+
+    /**
+     * Get List of Bridge Wallets
+     * @param int $limit
+     * @param string $starting_after
+     * @param string $ending_before
+     */
+    public function getWallets(
+        int $limit = 10,
+        ?string $starting_after = null,
+        ?string $ending_before = null
+    ): array {
+        $params = ['limit' => $limit];
+        
+        if ($starting_after !== null) {
+            $params['starting_after'] = $starting_after;
+        }
+        
+        if ($ending_before !== null) {
+            $params['ending_before'] = $ending_before;
+        }
+        
+        $queryString = http_build_query($params);
+        $endpoint = $this->base_url . "/wallets?" . $queryString;
+        
+        Log::info('Bridge getWallets request', [
+            'endpoint' => $endpoint,
+            'params' => $params
+        ]);
+        
+        return $this->http()->get($endpoint)->json();
+    }
+
+    /**
+     * Get Total Balances across all Bridge Wallets
+     * @return array
+     */
+    public function getTotalBalances(): array {
+        $endpoint = $this->base_url . "/wallets/total_balances";
+
+        Log::info('Bridge getTotalBalances request', [
+            'endpoint' => $endpoint
+        ]);
+
+        return $this->http()->get($endpoint)->json();
+    }
+
+    /**
+     * Get transaction history for a bridge wallet
+     * @return array
+     */
+    /**
+     * Get wallet transaction history
+     * @param string $walletId
+     * @param int $limit
+     * @param string|null $starting_after
+     * @param string|null $ending_before
+     * @return array
+     */
+    public function getWalletTransactionHistory(
+        string $walletId, 
+        int $limit = 10, 
+        ?string $starting_after = null, 
+        ?string $ending_before = null
+    ): array {
+        $params = ['limit' => $limit];
+        
+        if ($starting_after !== null) {
+            $params['starting_after'] = $starting_after;
+        }
+        
+        if ($ending_before !== null) {
+            $params['ending_before'] = $ending_before;
+        }
+        
+        $queryString = http_build_query($params);
+        $endpoint = $this->base_url . "/wallets/{$walletId}/history?" . $queryString;
+        
+        Log::info('Bridge getWalletTransactionHistory request', [
+            'endpoint' => $endpoint,
+            'params' => $params
+        ]);
+        
+        return $this->http()->get($endpoint)->json();
     }
 
     /**
@@ -152,7 +237,36 @@ class BridgeService
     public function getCustomer(string $customerId)
     {
         $endpoint = $this->base_url . "/customers/{$customerId}";
-        return $this->http()->get($endpoint);
+        return $this->http()->get($endpoint)->json();
+    }
+
+    /**
+     * Get all customers
+     * @return array
+     */
+    public function getAllCustomers(): array {
+        $endpoint = $this->base_url . "/customers";
+
+        Log::info('Bridge getAllCustomers request', [
+            'endpoint' => $endpoint
+        ]);
+
+        return $this->http()->get($endpoint)->json();
+    }
+
+    /**
+     * Get all customer's wallets
+     * @param string $customerId
+     */
+    public function getCustomerWallets(string $customerId): array {
+        $endpoint = $this->base_url . "/customers/{$customerId}/wallets";
+
+        Log::info('Bridge getCustomerWallets request', [
+            'endpoint' => $endpoint,
+            'customerId' => $customerId
+        ]);
+
+        return $this->http()->get($endpoint)->json();
     }
 
     /**
@@ -170,7 +284,7 @@ class BridgeService
             $params['cursor'] = $cursor;
         }
 
-        return $this->http()->get($endpoint, $params);
+        return $this->http()->get($endpoint, $params)->json();
     }
 
     /**
@@ -182,7 +296,7 @@ class BridgeService
     public function updateCustomer(string $customerId, array $data)
     {
         $endpoint = $this->base_url . "/customers/{$customerId}";
-        return $this->http()->put($endpoint, $data);
+        return $this->http()->put($endpoint, $data)->json();
     }
 
     /**
@@ -214,7 +328,7 @@ class BridgeService
     public function getKycLinkStatus(string $kycLinkId)
     {
         $endpoint = $this->base_url . "/kyc_links/{$kycLinkId}";
-        return $this->http()->get($endpoint);
+        return $this->http()->get($endpoint)->json();
     }
 
     /**
@@ -233,17 +347,6 @@ class BridgeService
     }
 
     /**
-     * List customer wallets
-     * @param string $customerId
-     * @return array
-     */
-    public function getCustomerWallets(string $customerId)
-    {
-        $endpoint = $this->base_url . "/customers/{$customerId}/wallets";
-        return $this->http()->get($endpoint);
-    }
-
-    /**
      * Get wallet details
      * @param string $walletId
      * @return array
@@ -251,7 +354,7 @@ class BridgeService
     public function getWallet(string $walletId)
     {
         $endpoint = $this->base_url . "/wallets/{$walletId}";
-        return $this->http()->get($endpoint);
+        return $this->http()->get($endpoint)->json();
     }
 
     /**
@@ -262,7 +365,7 @@ class BridgeService
     public function getWalletBalance(string $walletId)
     {
         $endpoint = $this->base_url . "/wallets/{$walletId}/balances";
-        return $this->http()->get($endpoint);
+        return $this->http()->get($endpoint)->json();
     }
 
     /**
@@ -334,30 +437,40 @@ class BridgeService
     public function getTransfer(string $transferId)
     {
         $endpoint = $this->base_url . "/transfers/{$transferId}";
-        return $this->http()->get($endpoint);
+        return $this->http()->get($endpoint)->json();
     }
 
     /**
      * List all transfers
      * @param int $limit
-     * @param string $cursor - Pagination cursor
-     * @param string $customerId - Optional filter by customer
+     * @param string|null $starting_after
+     * @param string|null $ending_before
      * @return array
      */
-    public function listTransfers(int $limit = 100, string $cursor = null, string $customerId = null)
-    {
-        $endpoint = $this->base_url . "/transfers";
+    public function listTransfers(
+        int $limit = 10,
+        ?string $starting_after = null,
+        ?string $ending_before = null
+    ): array {
         $params = ['limit' => $limit];
-
-        if ($cursor) {
-            $params['cursor'] = $cursor;
+        
+        if ($starting_after !== null) {
+            $params['starting_after'] = $starting_after;
         }
-
-        if ($customerId) {
-            $params['customer_id'] = $customerId;
+        
+        if ($ending_before !== null) {
+            $params['ending_before'] = $ending_before;
         }
-
-        return $this->http()->get($endpoint, $params);
+        
+        $queryString = http_build_query($params);
+        $endpoint = $this->base_url . "/transfers?" . $queryString;
+        
+        Log::info('Bridge listTransfers request', [
+            'endpoint' => $endpoint,
+            'params' => $params
+        ]);
+        
+        return $this->http()->get($endpoint)->json();
     }
 
     /**
@@ -393,7 +506,7 @@ class BridgeService
     public function getCustomerExternalAccounts(string $customerId)
     {
         $endpoint = $this->base_url . "/customers/{$customerId}/external_accounts";
-        return $this->http()->get($endpoint);
+        return $this->http()->get($endpoint)->json();
     }
 
     /**
@@ -404,7 +517,7 @@ class BridgeService
     public function getExternalAccount(string $externalAccountId)
     {
         $endpoint = $this->base_url . "/external_accounts/{$externalAccountId}";
-        return $this->http()->get($endpoint);
+        return $this->http()->get($endpoint)->json();
     }
 
     /**
@@ -452,7 +565,7 @@ class BridgeService
             $params['cursor'] = $cursor;
         }
 
-        return $this->http()->get($endpoint, $params);
+        return $this->http()->get($endpoint, $params)->json();
     }
 
     /**
@@ -463,7 +576,7 @@ class BridgeService
     public function getVirtualAccount(string $virtualAccountId)
     {
         $endpoint = $this->base_url . "/virtual_accounts/{$virtualAccountId}";
-        return $this->http()->get($endpoint);
+        return $this->http()->get($endpoint)->json();
     }
 
     /**
@@ -475,7 +588,7 @@ class BridgeService
     public function updateVirtualAccount(string $virtualAccountId, array $data)
     {
         $endpoint = $this->base_url . "/virtual_accounts/{$virtualAccountId}";
-        return $this->http()->put($endpoint, $data);
+        return $this->http()->put($endpoint, $data)->json();
     }
 
     /**
@@ -531,7 +644,7 @@ class BridgeService
             $params['cursor'] = $cursor;
         }
 
-        return $this->http()->get($endpoint, $params);
+        return $this->http()->get($endpoint, $params)->json();
     }
 
     /**
@@ -542,7 +655,7 @@ class BridgeService
     public function getCard(string $cardAccountId)
     {
         $endpoint = $this->base_url . "/card_accounts/{$cardAccountId}";
-        return $this->http()->get($endpoint);
+        return $this->http()->get($endpoint)->json();
     }
 
     /**
@@ -554,7 +667,7 @@ class BridgeService
     public function updateCard(string $cardAccountId, array $data)
     {
         $endpoint = $this->base_url . "/card_accounts/{$cardAccountId}";
-        return $this->http()->put($endpoint, $data);
+        return $this->http()->put($endpoint, $data)->json();
     }
 
     /**
@@ -564,7 +677,7 @@ class BridgeService
     public function getLiquidityBalances()
     {
         $endpoint = $this->base_url . "/liquidity/balances";
-        return $this->http()->get($endpoint);
+        return $this->http()->get($endpoint)->json();
     }
 
     /**
@@ -596,7 +709,7 @@ class BridgeService
             $params['cursor'] = $cursor;
         }
 
-        return $this->http()->get($endpoint, $params);
+        return $this->http()->get($endpoint, $params)->json();
     }
 
     /**
@@ -608,7 +721,7 @@ class BridgeService
     public function getLiquidationAddress(string $customerId, string $liquidationAddressId)
     {
         $endpoint = $this->base_url . "/customers/{$customerId}/liquidation_addresses/{$liquidationAddressId}";
-        return $this->http()->get($endpoint);
+        return $this->http()->get($endpoint)->json();
     }
 
     /**
@@ -627,6 +740,30 @@ class BridgeService
             $params['cursor'] = $cursor;
         }
 
-        return $this->http()->get($endpoint, $params);
+        return $this->http()->get($endpoint, $params)->json();
+    }
+
+    /**
+     * Get exchange rates between currencies
+     * @param string $from - Source currency (brl, btc, eth, eur, mxn, sol, usd, usdt)
+     * @param string $to - Target currency (brl, btc, eth, eur, mxn, sol, usd, usdt)
+     * @return array
+     */
+    public function getExchangeRates(string $from, string $to): array
+    {
+        $params = [
+            'from' => strtolower($from),
+            'to' => strtolower($to)
+        ];
+        
+        $queryString = http_build_query($params);
+        $endpoint = $this->base_url . "/exchange_rates?" . $queryString;
+        
+        Log::info('Bridge getExchangeRates request', [
+            'endpoint' => $endpoint,
+            'params' => $params
+        ]);
+        
+        return $this->http()->get($endpoint)->json();
     }
 }

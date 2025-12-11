@@ -64,6 +64,70 @@ Route::middleware("localization")->group(function () {
 
     });
 });
+
+// BRIDGE API Routes - for testing and integration
+Route::prefix('bridge')->group(function () {
+    // Wallets
+    Route::get('wallets', [App\Http\Controllers\API\BridgeController::class, 'getWallets']);
+    Route::get('wallets/total-balances', [App\Http\Controllers\API\BridgeController::class, 'getTotalBalances']);
+    Route::get('wallets/{walletId}/history', [App\Http\Controllers\API\BridgeController::class, 'getWalletTransactionHistory']);
+
+    // Customers
+    Route::get('customers', [App\Http\Controllers\API\BridgeController::class, 'getCustomers']);
+    Route::get('customers/{customerId}/wallets', [App\Http\Controllers\API\BridgeController::class, 'getCustomerWallets']);
+    Route::post('customers/{customerId}/wallets', [App\Http\Controllers\API\BridgeController::class, 'createWallet']);
+
+    // Transfers
+    Route::get('transfers', [App\Http\Controllers\API\BridgeController::class, 'listTransfers']);
+    Route::post('transfers', [App\Http\Controllers\API\BridgeController::class, 'createTransfer']);
+    Route::get('transfers/{transferId}', [App\Http\Controllers\API\BridgeController::class, 'getTransfer']);
+
+    // Exchange Rates
+    Route::get('exchange-rates', [App\Http\Controllers\API\BridgeController::class, 'getExchangeRates']);
+});
+
+// VALR API Routes - for testing and integration
+Route::prefix('valr')->group(function () {
+    // Market data (public endpoints)
+    Route::get('market-summary', [App\Http\Controllers\API\ValrController::class, 'getMarketSummary']);
+    Route::get('currencies', [App\Http\Controllers\API\ValrController::class, 'getCurrencies']);
+    Route::get('currency-pairs', [App\Http\Controllers\API\ValrController::class, 'getCurrencyPairs']);
+    Route::get('market-summary/{currencyPair}', [App\Http\Controllers\API\ValrController::class, 'getMarketSummaryForCurrencyPair']);
+    Route::get('order-book/{currencyPair}', [App\Http\Controllers\API\ValrController::class, 'getOrderBook']);
+    
+    // Account endpoints (protected)
+    Route::get('balances', [App\Http\Controllers\API\ValrController::class, 'getBalances']);
+    Route::get('deposit-address/{currency}', [App\Http\Controllers\API\ValrController::class, 'getDepositAddress']);
+    
+    // Orders
+    Route::get('orders/open', [App\Http\Controllers\API\ValrController::class, 'getOpenOrders']);
+    Route::get('orders/{currencyPair}/orderId/{orderId}', [App\Http\Controllers\API\ValrController::class, 'getOrderStatus']);
+    Route::post('orders/limit', [App\Http\Controllers\API\ValrController::class, 'placeLimitOrder']);
+    Route::post('orders/market', [App\Http\Controllers\API\ValrController::class, 'placeMarketOrder']);
+    Route::delete('orders/cancel', [App\Http\Controllers\API\ValrController::class, 'cancelOrder']);
+    
+    // Simple trading
+    Route::post('simple/quote', [App\Http\Controllers\API\ValrController::class, 'getSimpleQuote']);
+    Route::post('simple/order', [App\Http\Controllers\API\ValrController::class, 'placeSimpleOrder']);
+
+    // Payments
+    Route::post('pay', [App\Http\Controllers\API\ValrController::class, 'makePayment']);
+
+    // Wallet -> Fiat
+    Route::get('bank-accounts/{currencyCode}', [App\Http\Controllers\API\ValrController::class, 'getLinkedBankAccounts']);
+    Route::post('fiat/{currencyCode}/withdraw', [App\Http\Controllers\API\ValrController::class, 'makeFiatWithdrawal']);
+    
+    // Wallet -> Crypto
+    Route::get('crypto/{currencyCode}/deposit/address', [App\Http\Controllers\API\ValrController::class, 'getCryptoCurrencyWalletAddress']);
+    Route::post('crypto/{currencyCode}/withdraw', [App\Http\Controllers\API\ValrController::class, 'makeCryptoWithdrawal']);
+    Route::get('crypto/service-providers', [App\Http\Controllers\API\ValrController::class, 'getCryptoServiceProviders']);
+    Route::get('crypto/{currencyCode}/withdraw-info', [App\Http\Controllers\API\ValrController::class, 'getWithdrawalConfigInfo']);
+    Route::get('crypto/withdraw/history', [App\Http\Controllers\API\ValrController::class, 'getCryptoWithdrawalHistory']);
+    Route::get('crypto/{currencyCode}/withdraw/{withdrawId}/status', [App\Http\Controllers\API\ValrController::class, 'getCryptoWithdrawalStatus']);
+    Route::get('crypto/address-book', [App\Http\Controllers\API\ValrController::class, 'getCryptoAddressBook']);
+    Route::post('crypto/validate-address', [App\Http\Controllers\API\ValrController::class, 'validateWhitelistedAddress']);
+});
+
 //
 //Route::post("dish", function () {
 //    $achat = \App\Models\Achat::find(15);

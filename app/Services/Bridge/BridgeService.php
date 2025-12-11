@@ -172,10 +172,6 @@ class BridgeService
     }
 
     /**
-     * Get transaction history for a bridge wallet
-     * @return array
-     */
-    /**
      * Get wallet transaction history
      * @param string $walletId
      * @param int $limit

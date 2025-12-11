@@ -797,6 +797,13 @@ class ValrService
         return $this->getCryptoWithdrawalStatus($currencyCode, $responseData['id']);
     }
 
+    /**
+     * Get the status of a crypto withdrawal by currency code and withdrawal ID.
+     *
+     * @param string $currencyCode The code of the currency (e.g., BTC, ETH).
+     * @param string $withdrawId The unique identifier of the withdrawal.
+     * @return array The withdrawal status information.
+     */
     public function getCryptoWithdrawalStatus(string $currencyCode, string $withdrawId): array {
         $path = "/v1/wallet/crypto/{$currencyCode}/withdraw/{$withdrawId}";
         return $this->http('GET', $path)->get($this->base_url . $path)->json();

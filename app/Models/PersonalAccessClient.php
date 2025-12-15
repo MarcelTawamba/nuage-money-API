@@ -29,6 +29,6 @@ class PersonalAccessClient extends PassportPersonalAccessClient
     {
         parent::__construct($attributes);
 
-        $this->connection = env("AUTH_DB_CONNECTION", "mysql");
+        $this->connection = env("AUTH_DB_CONNECTION", env("DB_CONNECTION", "pgsql"));
     }
 }

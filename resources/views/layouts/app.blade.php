@@ -1,7 +1,7 @@
 <x-laravel-ui-adminlte::adminlte-layout>
     <style>
         body, .layout-fixed{
-            background-color: #B8E2F9 !important;
+            background-color: #f6f6f6 !important;
         }
         *::-webkit-scrollbar {
             width: 5px;
@@ -158,9 +158,10 @@
             width: calc(100vw - 322px);
             margin-left: 0 !important;
             right: 16px;
-            border-radius: 10px;
+            border-radius: 1rem;
             position: fixed;
-
+            box-shadow: 0 2px 10px rgba(0,0,0,0.05);
+            border: none;
         }
 
         .sidebar-collapse .main-header{
@@ -171,7 +172,6 @@
 
         }
         @media (max-width: 991.98px){
-            .
             .sidebar-collapse .main-header{
                 width: calc(100vw - 38px);
             }
@@ -180,14 +180,50 @@
             overflow-x: auto;
         }
         table > thead {
-            background-color: #5285c2 !important;
+            background: linear-gradient(135deg, #6EAFFB 0%, #5285c2 100%) !important;
             color: white;
+        }
+        
+        .card, .modal-content {
+            border-radius: 1rem;
+            border: none;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.08);
         }
 
 
         .bg-custom-blue {
-            background-color: #6EAFFB;
+            background: linear-gradient(135deg, #6EAFFB 0%, #5285c2 100%);
             color: white !important;
+            border: none;
+            border-radius: 1rem;
+            padding: 0.5rem 1.5rem;
+            transition: all 0.3s ease;
+        }
+        
+        .bg-custom-blue:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 4px 12px rgba(110, 175, 251, 0.4);
+        }
+        
+        .btn {
+            border-radius: 1rem;
+            padding: 0.5rem 1.5rem;
+            transition: all 0.3s ease;
+        }
+        
+        .form-control, .custom-select {
+            border-radius: 1rem;
+            border: 1px solid #e6e6e6;
+            padding: 0.5rem 1rem;
+        }
+        
+        .table {
+            border-radius: 1rem;
+            overflow: hidden;
+        }
+        
+        .table thead {
+            background: linear-gradient(135deg, #6EAFFB 0%, #5285c2 100%);
         }
 
         .text-custom-blue{
@@ -258,8 +294,10 @@
             @include('layouts.sidebar')
 
             <!-- Content Wrapper. Contains page content -->
-            <div class="content-wrapper mr-3" style="margin-top: 80px !important; background-color: transparent !important; ">
-                @yield('content')
+            <div class="content-wrapper mr-3" style="margin-top: 80px !important; background-color: transparent !important;">
+                <div class="content-inner">
+                    @yield('content')
+                </div>
             </div>
 
         </div>

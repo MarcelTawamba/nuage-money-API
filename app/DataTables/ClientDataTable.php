@@ -30,7 +30,7 @@ class ClientDataTable extends DataTable
      */
     public function query(Wallet $model)
     {
-        $user = \Auth::user();
+        $user = Auth::user();
         if ($user->is_admin) {
 
             return $model->newQuery();

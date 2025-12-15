@@ -17,26 +17,27 @@ class ToupesuPhoneNumber
     private $countryCode;
     private $nationalNumber;
     private $internationNumber;
+    private $defaultRegion;
     public  $carrier;
 
     /**
      * ToupesuPhoneNumber constructor.
      * @param $phoneNumber
+     * @param string $defaultRegion The default region to use for parsing (e.g., "US", "CM")
      * @throws \libphonenumber\NumberParseException
      */
-    function __construct($phoneNumber)
+    function __construct($phoneNumber, $defaultRegion = "US")
     {
         $this->phoneNumber = $this->RemoveSpaceAndDash($phoneNumber);
+        $this->defaultRegion = $defaultRegion;
         $this->isValidNumber = false;
         $this->isMobileNumber = false;
         $this->regionCode = null;
         $this->nationalNumber = null;
         $this->internationNumber = null;
         $this->countryCode = null;
-        $this->carrier=null;
+        $this->carrier = null;
         $this->ValidatedNumber();
-
-
     }
 
     /**
@@ -44,7 +45,7 @@ class ToupesuPhoneNumber
      */
     private function ValidatedNumber() {
         $phoneUtil = PhoneNumberUtil::getInstance();
-        $parseNumber = $phoneUtil->parse($this->phoneNumber, "CM");
+        $parseNumber = $phoneUtil->parse($this->phoneNumber, $this->defaultRegion);
         if(!$phoneUtil->isValidNumber($parseNumber)) {
             $this->isValidNumber = false;
         } else if (($phoneUtil->getNumberType($parseNumber) != PhoneNumberType::MOBILE) && ($phoneUtil->getNumberType($parseNumber) != PhoneNumberType::FIXED_LINE_OR_MOBILE)) {

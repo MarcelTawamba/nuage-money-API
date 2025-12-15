@@ -27,13 +27,15 @@ class AuthServiceProvider extends ServiceProvider
      */
     public function boot(): void
     {
-        //
         $this->registerPolicies();
+        
+        // Use custom models
         Passport::useClientModel(Client::class);
         Passport::useAuthCodeModel(AuthCode::class);
         Passport::usePersonalAccessClientModel(PersonalAccessClient::class);
 
-        Passport::tokensExpireIn(now()->addHour());
+        // Token expiration - extended to 24 hours for better UX
+        Passport::tokensExpireIn(now()->addHours(24));
         Passport::refreshTokensExpireIn(now()->addDays(30));
     }
 }

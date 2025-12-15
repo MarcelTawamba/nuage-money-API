@@ -2,7 +2,7 @@
 
 namespace App\DataTables;
 
-use App\Models\StartButtonBank;
+use App\Models\StartButton\Bank;
 use Yajra\DataTables\Services\DataTable;
 use Yajra\DataTables\EloquentDataTable;
 
@@ -24,10 +24,10 @@ class StartButtonBankDataTable extends DataTable
     /**
      * Get query source of dataTable.
      *
-     * @param \App\Models\StartButtonBank $model
+     * @param \App\Models\StartButton\Bank $model
      * @return \Illuminate\Database\Eloquent\Builder
      */
-    public function query(StartButtonBank $model)
+    public function query(Bank $model)
     {
         return $model->newQuery();
     }

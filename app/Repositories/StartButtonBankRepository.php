@@ -2,7 +2,7 @@
 
 namespace App\Repositories;
 
-use App\Models\StartButtonBank;
+use App\Models\StartButton\Bank;
 use App\Repositories\BaseRepository;
 
 class StartButtonBankRepository extends BaseRepository
@@ -21,6 +21,6 @@ class StartButtonBankRepository extends BaseRepository
 
     public function model(): string
     {
-        return StartButtonBank::class;
+        return Bank::class;
     }
 }

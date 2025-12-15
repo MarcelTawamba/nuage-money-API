@@ -94,15 +94,15 @@ class HomeController extends Controller
             $transactions = Transaction::orderBy('id',"desc")->limit(10)->get();
 
 
-        }else{
+        } else {
             $companies = Company::whereUserId($user->id)->get();
-            $clients = Client::where("user_id",$user->id)->get();
+            $clients = Client::where("user_id", $user->id)->get();
             $client_id = [];
 
-            foreach ($clients as $client){
-                $client_id[]= $client->id;
+            foreach ($clients as $client) {
+                $client_id[] = $client->id;
             }
-            $wallets =  $user->wallets_nuage();
+            $wallets = $user->wallets_nuage();
             $achat = Achat::whereIn("client_id",$client_id)->get();
             $trans = Achat::whereIn("client_id",$client_id)->where("status",PaymentStatus::SUCCESSFUL)
                 ->select(DB::raw('DATE(created_at) as date'), DB::raw('sum(amount) as amount'),"currency")

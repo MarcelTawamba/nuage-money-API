@@ -5,7 +5,7 @@
         @include('layouts.datatables_css')
     @endpush
     @include('flash_message')
-    <div class="container-fluid  " style="background-color: white">
+    <div class="container-fluid" style="background-color: white; border-radius: 1rem; padding: 2rem; box-shadow: 0 2px 10px rgba(0,0,0,0.05);">
         @if(\Illuminate\Support\Facades\Auth::user()->is_admin)
         <div class="d-flex flex-wrap">
 
@@ -307,33 +307,58 @@
     </div>
     <style>
         .top-card{
-
             width: 150px;
             height: 100px;
             display: flex;
             flex-direction: column;
             align-items: center;
             justify-content: center;
-            border-radius: 10px;
-            background-color: #6EAFFB66;
+            border-radius: 1rem;
+            background-color: #fff;
             margin: 8px 10px;
             color:  #2B5587;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.08);
+            transition: all 0.3s ease;
+        }
+        
+        .top-card:hover{
+            transform: translateY(-5px);
+            box-shadow: 0 4px 15px rgba(0,0,0,0.12);
+        }
+        
+        .top-card.bg-custom-blue{
+            background: linear-gradient(135deg, #6EAFFB 0%, #5285c2 100%);
+            color: white;
+        }
+        
+        .top-card.bg-custom-blue .h3{
+            color: white;
         }
 
         .chart-card{
             margin: 15px 15px;
-            border-radius: 20px;
-            border: 1px solid #D9D6D6;
+            border-radius: 1rem;
+            border: none;
+            background-color: white;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.08);
+            padding: 1rem;
         }
 
         .custom-card{
             position: relative;
-            border-radius: 20px;
-            border: 1px solid #D9D6D6;
+            border-radius: 1rem;
+            border: none;
             width: 271px;
             height: 170px;
             margin: 15px 15px;
-
+            background-color: white;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.08);
+            transition: all 0.3s ease;
+        }
+        
+        .custom-card:hover{
+            transform: translateY(-3px);
+            box-shadow: 0 4px 12px rgba(0,0,0,0.12);
         }
         .img-div img{
             width: 40px;
@@ -509,273 +534,11 @@
     <script src="https://cdn.amcharts.com/lib/5/xy.js"></script>
     <script src="https://cdn.amcharts.com/lib/5/percent.js"></script>
     <script src="https://cdn.amcharts.com/lib/5/themes/Animated.js"></script>
+    <script src="{{ asset('js/home-charts.js') }}"></script>
 
-    <!-- Chart code -->
     <script>
-        let data = {{ Js::from($trans) }};
-        am5.ready(function() {
-
-            data = JSON.parse(data)
-
-            for (let i = 0; i < data.length; i++) {
-                data[i]['date']=new Date(data[i]['date']).getTime();
-            }
-
-            let root = am5.Root.new("chartdiv");
-
-            root.setThemes([
-                am5themes_Animated.new(root)
-            ]);
-
-            let chart = root.container.children.push(
-                am5xy.XYChart.new(root, {
-                    panX: true,
-                    panY: true,
-                    wheelX: "panX",
-                    wheelY: "zoomX",
-                    pinchZoomX:true
-                })
-            );
-
-
-            let cursor = chart.set("cursor", am5xy.XYCursor.new(root, {
-                behavior: "none"
-            }));
-            cursor.lineY.set("visible", false);
-
-            let xAxis = chart.xAxes.push(
-                am5xy.DateAxis.new(root, {
-                    baseInterval: { timeUnit: "day", count: 1 },
-                    renderer: am5xy.AxisRendererX.new(root, {}),
-                    tooltip: am5.Tooltip.new(root, {}),
-                    tooltipDateFormat: "yyyy-MM-dd"
-                })
-            );
-
-            let yAxis = chart.yAxes.push(
-                am5xy.ValueAxis.new(root, {
-                    maxDeviation:1,
-                    renderer: am5xy.AxisRendererY.new(root, {pan:"zoom"})
-                })
-            );
-
-            createSeries("XAF",root,chart,xAxis,yAxis)
-            createSeries("NGN",root,chart,xAxis,yAxis)
-
-            let scrollbar = chart.set("scrollbarX", am5xy.XYChartScrollbar.new(root, {
-                orientation: "horizontal",
-                height: 60
-            }));
-
-            let sbDateAxis = scrollbar.chart.xAxes.push(
-                am5xy.DateAxis.new(root, {
-                    baseInterval: {
-                        timeUnit: "day",
-                        count: 1
-                    },
-                    renderer: am5xy.AxisRendererX.new(root, {})
-                })
-            );
-
-            let sbValueAxis = scrollbar.chart.yAxes.push(
-                am5xy.ValueAxis.new(root, {
-                    renderer: am5xy.AxisRendererY.new(root, {})
-                })
-            );
-
-            let sbSeries = scrollbar.chart.series.push(
-                am5xy.LineSeries.new(root, {
-                    valueYField: "amount",
-                    valueXField: "date",
-                    xAxis: sbDateAxis,
-                    yAxis: sbValueAxis
-                })
-            );
-
-            sbSeries.fills.template.setAll({
-                fillOpacity: 0.2,
-                visible: true
-            });
-
-
-
-            sbSeries.data.setAll(data);
-            let legend = chart.rightAxesContainer.children.push(am5.Legend.new(root, {
-                width: 70,
-                paddingLeft: 15,
-                height: am5.percent(100)
-            }));
-
-// When legend item container is hovered, dim all the series except the hovered one
-            legend.itemContainers.template.events.on("pointerover", function(e) {
-                let itemContainer = e.target;
-
-                // As series list is data of a legend, dataContext is series
-                let series = itemContainer.dataItem.dataContext;
-
-                chart.series.each(function(chartSeries) {
-                    if (chartSeries != series) {
-                        chartSeries.strokes.template.setAll({
-                            strokeOpacity: 0.15,
-                            stroke: am5.color(0x000000)
-                        });
-                    } else {
-                        chartSeries.strokes.template.setAll({
-                            strokeWidth: 3
-                        });
-                    }
-                })
-            })
-
-// When legend item container is unhovered, make all series as they are
-            legend.itemContainers.template.events.on("pointerout", function(e) {
-                let itemContainer = e.target;
-                let series = itemContainer.dataItem.dataContext;
-
-                chart.series.each(function(chartSeries) {
-                    chartSeries.strokes.template.setAll({
-                        strokeOpacity: 1,
-                        strokeWidth: 1,
-                        stroke: chartSeries.get("fill")
-                    });
-                });
-            })
-
-            legend.itemContainers.template.set("width", am5.p100);
-            legend.valueLabels.template.setAll({
-                width: am5.p100,
-                textAlign: "right"
-            });
-
-// It's is important to set legend data after all the events are set on template, otherwise events won't be copied
-            legend.data.setAll(chart.series.values);
-
-            chart.appear(1000, 100);
-
-        }) ;// end am5.ready()
-
-        function createSeries(name,root,chart, xAxis,yAxis) {
-
-
-            let series= chart.series.push(
-                am5xy.LineSeries.new(root, {
-                    name: name,
-                    xAxis: xAxis,
-                    yAxis: yAxis,
-                    stacked: true,
-                    valueYField: "amount",
-                    valueXField: "date",
-                    tooltip: am5.Tooltip.new(root, {
-                        labelText: "[bold]{name} {valueY}"
-                    })
-                })
-            );
-            series.fills.template.setAll({
-                fillOpacity: 0.2,
-                visible: true
-            });
-
-            series.strokes.template.setAll({
-                strokeWidth: 2
-            });
-
-
-            series.data.setAll(data.filter((elt)=> elt["currency"] === name));
-            series.appear(1000);
-        }
-
-        let data2 = {{ Js::from($trans_stat) }};
-        data2 = JSON.parse(data2)
-        am5.ready(function() {
-
-            let root = am5.Root.new("failed_stat");
-
-            let data3 = [];
-            for(let i=0;i<data2.length;i++){
-                if(data2[i]["status"] === "SUCCESSFUL"){
-                    data3.push( {
-                        status: data2[i]["status"],
-                        total : data2[i]["total"],
-                        columnSettings: {
-                            fill: am5.color(0xA6D997),
-                            stroke: am5.color(0xbabf95)
-                        }
-                    })
-
-                }else if(data2[i]["status"] === "PENDING"){
-                    data3.push({
-                        status: data2[i]["status"],
-                        total : data2[i]["total"],
-                        columnSettings: {
-                            fill: am5.color(0x6EAFFB),
-                            stroke: am5.color(0xbabf95)
-                        }
-                    })
-                }else if(data2[i]["status"] === "FAILED"){
-                    data3.push({
-                        status: data2[i]["status"],
-                        total : data2[i]["total"],
-                        columnSettings: {
-                            fill: am5.color(0xFF1919),
-                            stroke: am5.color(0xbabf95)
-                        }
-                    })
-                }else if(data2[i]["status"] === "CREATED"){
-                    data3.push( {
-                        status: data2[i]["status"],
-                        total : data2[i]["total"],
-                        columnSettings: {
-                            fill: am5.color(0xEEDBDB),
-                            stroke: am5.color(0xbabf95)
-                        }
-                    })
-
-                }
-            }
-
-            root.setThemes([
-                am5themes_Animated.new(root)
-            ]);
-
-
-            let chart = root.container.children.push(am5percent.PieChart.new(root, {
-                layout: root.verticalLayout,
-                innerRadius: am5.percent(50)
-            }));
-
-            let series = chart.series.push(am5percent.PieSeries.new(root, {
-                valueField: "total",
-                categoryField: "status",
-            }));
-
-
-            series.labels.template.set("visible", false);
-            series.ticks.template.set("visible", false);
-            series.slices.template.setAll({
-                templateField: "columnSettings"
-            });
-            series.data.setAll( data3);
-
-            let legend = chart.children.push(am5.Legend.new(root, {
-                centerX: am5.percent(50),
-                x: am5.percent(50),
-                marginTop: 15,
-                marginBottom: 15,
-            }));
-
-            legend.data.setAll(series.dataItems);
-
-            series.appear(1000, 100);
-
-        }); // end am5.ready()
-
-        function hideSmall(ev) {
-            if (ev.target.dataItem.values.value.percent >0) {
-                ev.target.hide();
-            }
-            else {
-                ev.target.show();
-            }
-        }
+        var transData = JSON.parse('{!! $trans !!}');
+        var transStatData = JSON.parse('{!! $trans_stat !!}');
+        initializeCharts(transData, transStatData);
     </script>
 @endsection

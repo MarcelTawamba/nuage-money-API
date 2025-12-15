@@ -2,7 +2,7 @@
 
 namespace App\Http\Requests;
 
-use App\Models\StartButtonBank;
+use App\Models\StartButton\Bank;
 use Illuminate\Foundation\Http\FormRequest;
 
 class UpdateStartButtonBankRequest extends FormRequest
@@ -24,7 +24,7 @@ class UpdateStartButtonBankRequest extends FormRequest
      */
     public function rules()
     {
-        $rules = StartButtonBank::$rules;
+        $rules = Bank::$rules;
         
         return $rules;
     }

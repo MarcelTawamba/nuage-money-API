@@ -81,8 +81,6 @@ class RegisterController extends Controller
         try {
             $phone = new ToupesuPhoneNumber("+". $data['country_code'].$data['phone_number']);
 
-
-
             $validator->after(function ($validator)use($phone) {
                 if (!$phone->IsValidNumber()) {
                     $validator->errors()->add(
@@ -91,8 +89,6 @@ class RegisterController extends Controller
                 }
             });
         }catch (\Exception $e){
-
-
             $validator->after(function ($validator) {
 
                 $validator->errors()->add(
@@ -102,13 +98,7 @@ class RegisterController extends Controller
 
         }
 
-
-
-
         return $validator;
-
-
-
     }
 
     /**
@@ -158,11 +148,15 @@ class RegisterController extends Controller
 
         $country_available = CountryAvaillable::whereCode($user->country_code)->first();
 
-        if($country_available instanceof CountryAvaillable){
+        if ($country_available instanceof CountryAvaillable) {
             $pod = Operator::whereCountryId($country_available->id)->first();
-            $currency  = WalletType::find($pod->currency_id);
-        }else{
-            $currency = WalletType::whereName('XAF')->first();
+            if ($pod) {
+                $currency = WalletType::find($pod->currency_id);
+            } else {
+                $currency = WalletType::whereName('USD')->first();
+            }
+        } else {
+            $currency = WalletType::whereName('USD')->first();
         }
 
         $client =  $client_repo->create(

@@ -20,7 +20,71 @@ class WalletDataTable extends DataTable
     {
         $dataTable = new EloquentDataTable($query);
 
-        return $dataTable->addColumn('action', 'wallets.datatables_actions');
+        return $dataTable
+            ->addColumn('action', 'wallets.datatables_actions')
+            ->editColumn('id', function($wallet) {
+                return $wallet->id;
+            })
+            ->addColumn('owner', function($wallet) {
+                $array = $wallet->toArray();
+                return $array['owner'];
+            })
+            ->addColumn('company', function($wallet) {
+                $array = $wallet->toArray();
+                return $array['company'];
+            })
+            ->addColumn('user', function($wallet) {
+                $array = $wallet->toArray();
+                return $array['user'];
+            })
+            ->addColumn('currency', function($wallet) {
+                return $wallet->currency->name;
+            })
+            ->editColumn('balance', function($wallet) {
+                return $wallet->balance;
+            })
+            ->filterColumn('owner', function($query, $keyword) {
+                // Don't let global search apply - we handle it manually
+            })
+            ->filterColumn('company', function($query, $keyword) {
+                // Don't let global search apply - we handle it manually
+            })
+            ->filterColumn('user', function($query, $keyword) {
+                // Don't let global search apply - we handle it manually
+            })
+            ->filterColumn('currency', function($query, $keyword) {
+                // Don't let global search apply - we handle it manually  
+            })
+            ->filter(function ($query) {
+                if (request()->has('search') && request('search.value') != '') {
+                    $keyword = request('search.value');
+                    
+                    $query->where(function($q) use ($keyword) {
+                        // Search by ID
+                        $q->where('wallets_nuage.id', 'like', "%{$keyword}%")
+                        // Search in User model (direct user relationship)
+                        ->orWhere(function($subQ) use ($keyword) {
+                            $subQ->where('wallets_nuage.user_type', 'App\\Models\\User')
+                                 ->whereHasMorph('user', ['App\\Models\\User'], function($userQ) use ($keyword) {
+                                     $userQ->where('name', 'like', "%{$keyword}%");
+                                 });
+                        })
+                        // Search in ClientWallet->Client (oauth_clients.name)
+                        ->orWhere(function($subQ) use ($keyword) {
+                            $subQ->where('wallets_nuage.user_type', 'App\\Models\\ClientWallet')
+                                 ->whereHasMorph('user', ['App\\Models\\ClientWallet'], function($cwQ) use ($keyword) {
+                                     $cwQ->whereHas('client', function($clientQ) use ($keyword) {
+                                         $clientQ->where('name', 'like', "%{$keyword}%");
+                                     });
+                                 });
+                        })
+                        // Search in currency/wallet type name
+                        ->orWhereHas('currency', function($currQ) use ($keyword) {
+                            $currQ->where('name', 'like', "%{$keyword}%");
+                        });
+                    });
+                }
+            });
     }
 
     /**
@@ -90,23 +154,21 @@ class WalletDataTable extends DataTable
     {
         if (Auth::user()->is_admin) {
             return [
-                "id",
-                "user",
-                "company",
-                "owner",
-                'currency',
-                'balance'
-
+                ['data' => 'id', 'name' => 'id', 'title' => 'ID', 'searchable' => true, 'orderable' => true],
+                ['data' => 'owner', 'name' => 'owner', 'title' => 'Owner', 'searchable' => false, 'orderable' => false],
+                ['data' => 'company', 'name' => 'company', 'title' => 'Company', 'searchable' => false, 'orderable' => false],
+                ['data' => 'user', 'name' => 'user', 'title' => 'User', 'searchable' => false, 'orderable' => false],
+                ['data' => 'currency', 'name' => 'currency', 'title' => 'Currency', 'searchable' => false, 'orderable' => false],
+                ['data' => 'balance', 'name' => 'balance', 'title' => 'Balance', 'searchable' => false, 'orderable' => true],
             ];
         } else {
             return [
-                "id",
-                "owner",
-                'currency',
-                'balance'
+                ['data' => 'id', 'name' => 'id', 'title' => 'ID', 'searchable' => true, 'orderable' => true],
+                ['data' => 'owner', 'name' => 'owner', 'title' => 'Owner', 'searchable' => false, 'orderable' => false],
+                ['data' => 'currency', 'name' => 'currency', 'title' => 'Currency', 'searchable' => false, 'orderable' => false],
+                ['data' => 'balance', 'name' => 'balance', 'title' => 'Balance', 'searchable' => false, 'orderable' => true],
             ];
         }
-
     }
 
     /**

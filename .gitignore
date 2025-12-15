@@ -59,3 +59,7 @@ gemini-notes.md
 
 # disabling cloud build
 cloudbuild.yaml
+
+# AI context documentation (local only)
+.ai/
+.github/copilot-instructions.md

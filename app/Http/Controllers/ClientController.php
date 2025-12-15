@@ -21,7 +21,7 @@ use App\Models\Company;
 use App\Models\CountryAvaillable;
 use App\Models\CustomFee;
 use App\Models\Operator;
-use App\Models\StartButtonBank;
+use App\Models\StartButton\Bank;
 use App\Models\ToupesuPaymentRequest;
 use App\Models\Wallet;
 use App\Models\WalletType;
@@ -34,7 +34,7 @@ use Illuminate\Validation\Rule;
 use Laravel\Passport\ClientRepository;
 use App\Models\Client;
 use Illuminate\Http\Request;
-use Flash;
+use Laracasts\Flash\Flash;
 use Laravel\Passport\Http\Rules\RedirectRule;
 use function Termwind\render;
 
@@ -57,7 +57,7 @@ class ClientController extends AppBaseController
      */
     protected $validation;
 
-    public function __construct(ClientRepository $clientRepo,ValidationFactory $validation, RedirectRule $redirectRule)
+    public function __construct(ClientRepository $clientRepo, ValidationFactory $validation, RedirectRule $redirectRule)
     {
         $this->clientRepository = $clientRepo;
         $this->validation = $validation;
@@ -69,11 +69,11 @@ class ClientController extends AppBaseController
      */
     public function index(Request $request)
     {
-        $user = \Auth::user();
-        if($user->is_admin){
+        $user = Auth::user();
+        if ($user->is_admin) {
             $clients = Client::paginate(10);
-        }else{
-            $clients = Client::where("user_id",$user->id)->paginate(10);
+        } else {
+            $clients = Client::where("user_id", $user->id)->paginate(10);
         }
 
         return view('clients.index')
@@ -99,7 +99,7 @@ class ClientController extends AppBaseController
         }
 
 
-        return view('clients.create')->with('company',$companies);
+        return view('clients.create')->with('company', $companies);
     }
 
     /**
@@ -110,15 +110,15 @@ class ClientController extends AppBaseController
         $input = $request->all();
 
         $this->validation->make($request->all(), [
-            'name' => Rule::unique('oauth_clients')->where(fn ($query) => $query->where('user_id', \Auth::user()->id)),
-            'redirect' => ['required', $this->redirectRule],
-            'company_id'=>"required|string|exists:companies,id",
+            'name' => Rule::unique('oauth_clients')->where(fn ($query) => $query->where('user_id', Auth::user()->id)),
+            'redirect'     => ['required', $this->redirectRule],
+            'company_id'   => "required|string|exists:companies,id",
             'confidential' => 'boolean',
         ])->validate();
 
 
         $client = $this->clientRepository->create(
-            \Auth::user()->id, $request->name, $request->redirect,
+            Auth::user()->id, $request->name, $request->redirect,
             null, false, false, (bool) $request->input('confidential', true)
         );
         $client->company_id = $request->company_id;
@@ -161,42 +161,54 @@ class ClientController extends AppBaseController
 
         $user = Auth::user();
 
-        $compnay=  Company::whereUserId($user->id)->first();
-        $client = Client::whereUserId($user->id)->where("company_id",$compnay->id)->first();
-
-       $currency = WalletType::find($request->input("main_wallet"));
-
-       $curr = WalletType::whereName($client->main_wallet)->first();
-
-       if(!$currency instanceof  WalletType){
-           Flash::error('Currency not found');
-           return redirect(route('home'));
-       }
-       $wallet = Wallet::whereUserType(ClientWallet::class)
-           ->where("user_id",$client->wallet->id)
-           ->where("wallet_type_id",$curr->id)->first();
-
-        if(!$wallet instanceof  Wallet){
-           $wallet = new Wallet();
-           $wallet->user_id = $client->wallet->id;
-           $wallet->user_type = ClientWallet::class;
-           $wallet->wallet_type_id = $curr->id;
-           $wallet->raw_balance = 0;
-
-           $wallet->save();
-
+        $company = Company::whereUserId($user->id)->first();
+        
+        if (!$company) {
+            Flash::error('Company not found');
+            return redirect(route('home'));
         }
-       if ($wallet->balance > 0){
-           Flash::error($curr->name .' balance most be << 0 >> for you to change the main wallet');
-           return redirect(route('home'));
-       }
+        
+        $client = Client::whereUserId($user->id)->where("company_id", $company->id)->first();
 
-       $client->main_wallet = $currency->name;
-       $client->save();
+        if (!$client) {
+            Flash::error('Client not found');
+            return redirect(route('home'));
+        }
 
-       Flash::success('Main wallet change successfully');
+        $currency = WalletType::find($request->input("main_wallet"));
 
-       return redirect(route('home'));
+        if (!$currency instanceof WalletType) {
+            Flash::error('Currency not found');
+            return redirect(route('home'));
+        }
+
+        $curr = WalletType::whereName($client->main_wallet)->first();
+
+        $wallet = Wallet::whereUserType(ClientWallet::class)
+            ->where("user_id", $client->wallet->id)
+            ->where("wallet_type_id", $curr->id)->first();
+
+        if (!$wallet instanceof Wallet) {
+            $wallet = new Wallet();
+            $wallet->user_id = $client->wallet->id;
+            $wallet->user_type = ClientWallet::class;
+            $wallet->wallet_type_id = $curr->id;
+            $wallet->raw_balance = 0;
+
+            $wallet->save();
+        }
+        
+        if ($wallet->balance > 0) {
+            Flash::error($curr->name . ' balance must be 0 for you to change the main wallet');
+            return redirect(route('home'));
+        }
+
+        $client->main_wallet = $currency->name;
+        $client->save();
+
+        Flash::success('Main wallet changed successfully');
+
+        return redirect(route('home'));
 
     }
 
@@ -283,8 +295,6 @@ class ClientController extends AppBaseController
     {
         $client = Client::find($id);
 
-        $user_id = \Auth::user()->id;
-
         if (empty($client)) {
             Flash::error('App not found');
 
@@ -322,8 +332,6 @@ class ClientController extends AppBaseController
 
             return redirect(route('home'));
         }
-
-
 
         $this->clientRepository->delete($client);
         $client->delete();
@@ -364,9 +372,7 @@ class ClientController extends AppBaseController
         }
 
         return view('clients.fund_wallet')->with('client', $client)->with("currency",$currency)->with("method",$methods);
-
     }
-
 
     /**
      * Remove the specified Wallet from storage.
@@ -405,7 +411,6 @@ class ClientController extends AppBaseController
                 }
 
                 Flash::success('Mobile request send, please validate on your phone');
-
 
             }elseif(strtolower($method->method_class) == strtolower(PaymentMethod::START_BUTTON_BANK)){
                 $inputs = [
@@ -472,7 +477,7 @@ class ClientController extends AppBaseController
             $country[$count->id] = $count->name;
         }
 
-        $bank_code = StartButtonBank::all();
+        $bank_code = Bank::all();
 
         $bank_codes = [];
 
@@ -553,7 +558,7 @@ class ClientController extends AppBaseController
                 $phone = new  ToupesuPhoneNumber($input["msidn"]);
 
                 if( !$phone->IsValidNumber()){
-                    back()
+                    return back()
                         ->withErrors(["message"=> "Provide a valid mobile number"])
                         ->withInput();
                 }

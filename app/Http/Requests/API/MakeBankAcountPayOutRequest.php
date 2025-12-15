@@ -29,7 +29,7 @@ class MakeBankAcountPayOutRequest extends FormRequest
             "ref_id"=>"required|string",
             "account_number"=>"required|string",
             "account_name"=>"required|string",
-            "bank_code"=>"required|string|exists:App\Models\StartButtonBank,code"
+            "bank_code"=>"required|string|exists:App\Models\StartButton\Bank,code"
         ];
     }
 }

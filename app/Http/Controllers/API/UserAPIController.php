@@ -9,6 +9,8 @@ use App\Repositories\UserRepository;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use App\Http\Controllers\AppBaseController;
+use Illuminate\Support\Facades\Auth;
+use Illuminate\Support\Facades\Hash;
 
 /**
  * Class UserAPIController
@@ -30,11 +32,7 @@ class UserAPIController extends AppBaseController
     public function show(): JsonResponse
     {
         /** @var User $user */
-
-
-        $user = \Auth::user();
-
-
+        $user = Auth::user();
 
         return $this->sendResponse($user->toArray(), 'User retrieved successfully');
     }
@@ -43,15 +41,14 @@ class UserAPIController extends AppBaseController
      * Update the specified User in storage.
      * PUT/PATCH /users/{id}
      */
-    public function update( UpdateUserAPIRequest $request): JsonResponse
+    public function update(UpdateUserAPIRequest $request): JsonResponse
     {
         $input = $request->all();
 
         /** @var User $user */
-        $user = \Auth::user();
+        $user = Auth::user();
 
-
-        $user = $this->userRepository->update($input,$user->id );
+        $user = $this->userRepository->update($input, $user->id);
 
         return $this->sendResponse($user->toArray(), 'User updated successfully');
     }
@@ -80,19 +77,34 @@ class UserAPIController extends AppBaseController
     /**
      * Login
      */
-    public function login(Request $request)
+    public function login(Request $request): JsonResponse
     {
-        $data = [
-            'email' => $request->email,
-            'password' => $request->password
-        ];
+        $request->validate([
+            'email' => 'required|email',
+            'password' => 'required',
+        ]);
 
+        $user = User::where('email', $request->email)->first();
 
-        if (auth("web")->attempt($data)) {
-            $token = auth()->user()->createToken("Nuage-gateway",["*"]);
-            return response()->json(['token' => $token], 200);
-        } else {
-            return response()->json(['error' => 'Unauthorised'], 401);
+        if (!$user || !Hash::check($request->password, $user->password)) {
+            return response()->json([
+                'success' => false,
+                'message' => 'The provided credentials are incorrect.'
+            ], 401);
         }
+
+        // For Passport OAuth, use this approach
+        $token = $user->createToken('Nuage-gateway')->accessToken;
+
+        return response()->json([
+            'success' => true,
+            'message' => 'Logged in successfully',
+            'token' => $token,
+            'user' => [
+                'id' => $user->id,
+                'name' => $user->name,
+                'email' => $user->email,
+            ]
+        ], 200);
     }
 }

@@ -25,7 +25,6 @@ class Kernel extends HttpKernel
         \Illuminate\Foundation\Http\Middleware\ValidatePostSize::class,
         \App\Http\Middleware\TrimStrings::class,
         \Illuminate\Foundation\Http\Middleware\ConvertEmptyStringsToNull::class,
-
     ];
 
     /**
@@ -73,5 +72,8 @@ class Kernel extends HttpKernel
         'localization' => Localization::class,
         'is_admin' => IsAdmin::class,
         'client_nuage' => CheckClientCredentialsNuage::class,
+        'api.key' => \App\Http\Middleware\AuthenticateApiKey::class,
+        'api.rate_limit' => \App\Http\Middleware\RateLimitApiKey::class,
+        'auth.passport' => \App\Http\Middleware\Authenticate::class . ':api',
     ];
 }

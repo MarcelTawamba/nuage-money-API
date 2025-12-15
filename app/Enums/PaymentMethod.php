@@ -21,4 +21,5 @@ final class PaymentMethod extends Enum
     const ADMIN_DEPOSIT = "admin_deposit";
     const VALR = "valr";
     const BRIDGE = "bridge";
+    const KORAPAY = "korapay";
 }

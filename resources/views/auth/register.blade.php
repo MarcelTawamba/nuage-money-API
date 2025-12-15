@@ -61,8 +61,8 @@
                             <div class="input-group col-sm-6 mb-4">
 
                                 <select name="account_type" class="form-control @error('account_type') is-invalid @enderror cust"  required>
-                                    <option disabled selected value="">Type Of Compte</option>
-                                    <option @if(old('account_type') == "personnel") selected @endif value="personnel">Personnel</option>
+                                    <option disabled selected value="">Type Of Account</option>
+                                    <option @if(old('account_type') == "personal") selected @endif value="personal">Personal</option>
                                     <option @if(old('account_type') == "company") selected @endif value="company">Company</option>
                                 </select>
 

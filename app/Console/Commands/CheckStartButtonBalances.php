@@ -39,21 +39,22 @@ class CheckStartButtonBalances extends Command
         $this->info('StartButton wallet balance response: '.json_encode($walletBalanceResponse));
         
         $wallets = [];
-        if ($walletBalanceResponse['success']) {
+        if (isset($walletBalanceResponse['success']) && $walletBalanceResponse['success']) {
             $wallets = $walletBalanceResponse['data'];
             $this->info('Wallets retrieved: '.count($wallets));
         } else {
-            $this->error('API call failed - no wallets retrieved');
+            $this->error('API call failed - response: '.json_encode($walletBalanceResponse));
             return 1;
         }
 
         // Create a map of wallets with currency as the key
         $walletMap = [];
         foreach ($wallets as $wallet) {
-            if (isset($wallet->currency)) {
-                $walletMap[$wallet->currency] = $wallet->availableBalance;
+            if (isset($wallet['currency'])) {
+                $walletMap[$wallet['currency']] = $wallet['availableBalance'];
             }
         }
+        $this->info('Wallet map created with '.count($walletMap).' currencies: '.implode(', ', array_keys($walletMap)));
 
         $adminUser = User::where('service_provider', 'StartButton')->first();
 
@@ -83,7 +84,7 @@ class CheckStartButtonBalances extends Command
                     'wallet_type_id' => $walletType->id,
                 ],
                 [
-                    'raw_balance' => $balance / 100,
+                    'raw_balance' => $balance,
                 ]
             );
             $this->info("Saved wallet ID={$wallet->id}, user_type={$wallet->user_type}, raw_balance={$wallet->raw_balance}");

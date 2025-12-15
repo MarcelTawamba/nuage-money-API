@@ -11,7 +11,8 @@ use App\Models\WalletType;
 use App\Repositories\WalletRepository;
 use App\Models\Wallet;
 use Illuminate\Http\Request;
-use Flash;
+use Illuminate\Support\Facades\Auth;
+use Laracasts\Flash\Flash;
 
 class WalletController extends AppBaseController
 {
@@ -38,7 +39,7 @@ class WalletController extends AppBaseController
      */
     public function create()
     {
-        $client = \Auth::user()->clients;
+        $client = Auth::user()->clients;
 
         $clients = [];
         foreach ( $client as $can){
@@ -77,8 +78,6 @@ class WalletController extends AppBaseController
         if($client_wallet->wallet( $currency->name) == null){
             $client_wallet->wallets()->create(['wallet_type_id' => $input["currency_id"]]);
         }
-
-
 
         Flash::success('Wallet saved successfully.');
 
@@ -139,10 +138,4 @@ class WalletController extends AppBaseController
 
         return redirect(route('wallets.index'));
     }
-
-
-
-
-
-
 }

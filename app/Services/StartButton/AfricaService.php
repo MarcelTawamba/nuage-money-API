@@ -56,7 +56,7 @@ class AfricaService
             $eendpoint .= "&countryCode=" . $countryCode;
         }
 
-        return $this->http_secret()->get($eendpoint);
+        return $this->http_secret()->get($eendpoint)->json();
     }
 
     /**
@@ -97,7 +97,7 @@ class AfricaService
             $postingData['metadata'] = $metadata;
         }
 
-        return $this->http_public()->post($eendpoint, $postingData);
+        return $this->http_public()->post($eendpoint, $postingData)->json();
     }
 
 
@@ -117,7 +117,7 @@ class AfricaService
         }
         $eendpoint = $this->base_url."/bank/verify?bankCode=".$bankCode."&accountNumber=".$accountNumber."&countryCode=".$countryCode;
 
-        return $this->http_secret()->get($eendpoint);
+        return $this->http_secret()->get($eendpoint)->json();
     }
 
     /**
@@ -132,7 +132,7 @@ class AfricaService
     {
         $data['amount'] = $data['amount'] * 100;
         $endpoint = $this->base_url . "/transaction/transfer";
-        return $this->http_secret()->post($endpoint, $data);
+        return $this->http_secret()->post($endpoint, $data)->json();
     }
 
     /**
@@ -140,13 +140,13 @@ class AfricaService
     public function getWalletBalance()
     {
         $endpoint = $this->base_url . "/wallet";
-        return $this->http_secret()->get($endpoint);
+        return $this->http_secret()->get($endpoint)->json();
     }
 
     public function convertFunds(array $data)
     {
         $endpoint = $this->base_url . "/transaction";
-        return $this->http_secret()->post($endpoint, $data);
+        return $this->http_secret()->post($endpoint, $data)->json();
     }
 
     /**
@@ -157,7 +157,7 @@ class AfricaService
     {
         $endpoint = $this->base_url."/transaction/status/".$reference;
 
-        return $this->http_secret()->get($endpoint);
+        return $this->http_secret()->get($endpoint)->json();
     }
 
 }

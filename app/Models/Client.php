@@ -71,7 +71,7 @@ class Client extends PassportClient
         $nuage_env = env("NUAGE_ENV");
 
         if(strtoupper($nuage_env) === strtoupper("SANDBOX")) {
-            $this->connection = env("AUTH_DB_CONNECTION", "mysql");
+            $this->connection = env("AUTH_DB_CONNECTION", env("DB_CONNECTION", "pgsql"));
         }
     }
 

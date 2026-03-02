@@ -57,7 +57,7 @@ class PayInSuccessHandler implements  ShouldQueue
 
                     }
 
-                    $wallet = Wallet::where('user_type',ClientWallet::class)->where('user_id',$client->wallet->id)->where('wallet_type_id', $currency->id)->first();
+                    $wallet = Wallet::where('user_type',ClientWallet::class)->where('user_id',$client_wallet->id)->where('wallet_type_id', $currency->id)->first();
 
                     $system_wallet =  Wallet::where('user_type',SystemLedger::class)->where('user_id',SystemLedger::whereName("system")->first()->id)->where('wallet_type_id', $currency->id)->first();
                     $system_fee_wallet =  Wallet::where('user_type',SystemLedger::class)->where('user_id',SystemLedger::whereName("system fee")->first()->id)->where('wallet_type_id', $currency->id)->first();
@@ -101,21 +101,27 @@ class PayInSuccessHandler implements  ShouldQueue
                         $wallet->save();
                     }
 
-                    $country = CountryAvaillable::where("code",strtoupper($event->achat->country) )->first();
+                    $country = CountryAvaillable::where("code",strtolower($event->achat->country) )->first();
 
                     if($event->achat->requestable_type == AdminDepositeRequest::class || $event->achat->requestable_type == ExchangeRequest::class){
                         $total_fee_amount = 0;
 
                     }else{
-                        $fees =  Operator::where("currency_id",$currency->id)->where("country_id",$country->id)->where("type",PayType::PAY_IN)->first();
-                        $custom_fee = CustomFee::where("company_id",$client->company_id)->where("method_id",$fees->id)->first();
+                        $total_fee_amount = 0; // Default to 0 if no fees configured
+                        
+                        if ($country instanceof CountryAvaillable) {
+                            $fees =  Operator::where("currency_id",$currency->id)->where("country_id",$country->id)->where("type",PayType::PAY_IN)->first();
+                            
+                            if ($fees instanceof Operator) {
+                                $custom_fee = CustomFee::where("company_id",$client->company_id)->where("method_id",$fees->id)->first();
 
-                        if($custom_fee instanceof  CustomFee){
-                            $fees = $custom_fee;
+                                if($custom_fee instanceof  CustomFee){
+                                    $fees = $custom_fee;
+                                }
+
+                                $total_fee_amount = $fees->fee_type == "percentage" ? $event->achat->amount * ( $fees->fees / 100 ) : $fees->fees;
+                            }
                         }
-
-
-                        $total_fee_amount = $fees->fee_type == "percentage" ? $event->achat->amount * ( $fees->fees / 100 ) : $fees->fees;
                     }
 
 

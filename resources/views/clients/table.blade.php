@@ -28,21 +28,14 @@
                     <td  style="width: 120px">
 {{--                        {!! Form::open(['route' => ['apps.destroy', $client->id], 'method' => 'delete']) !!}--}}
                         <div class='btn-group'>
-                            @if(Auth::user()->is_admin)
-                                <a href="{{ route('apps.fund_wallet_admin', [$client->id]) }}"
-                                   class='btn btn-default btn-xs'>
-                                    <i class="far fa-credit-card"></i>
-                                </a>
-                            @else
-                                <a href="{{ route('exchange-request.create', [$client->id]) }}"
-                                   class='btn btn-default btn-xs'>
-                                    <i class="fas fa-sync"></i>
-                                </a>
-                                <a href="{{ route('apps.fund_wallet', [$client->id]) }}"
-                                   class='btn btn-default btn-xs'>
-                                    <i class="far fa-credit-card"></i>
-                                </a>
-                            @endif
+                            <a href="{{ route('exchange-request.create', [$client->id]) }}"
+                               class='btn btn-default btn-xs'>
+                                <i class="fas fa-sync"></i>
+                            </a>
+                            <a href="{{ route('apps.fund_fiat_wallet', [$client->id]) }}"
+                               class='btn btn-default btn-xs'>
+                                <i class="far fa-credit-card"></i>
+                            </a>
                             <a href="{{ route('apps.show', [$client->id]) }}"
                                class='btn btn-default btn-xs'>
                                 <i class="far fa-eye"></i>

@@ -101,86 +101,61 @@
 
 
 
-    <style>
+@include('layouts.coinflow_design')
 
-        body.login-page{
-            background-color: #f6f6f6;
-        }
+<style>
+    body.login-page {
+        overflow-y: auto;
+    }
+
         .pages-left {
-            background-color: #fff;
+            background-color: var(--bg-input);
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
         }
 
         .login-content {
-            max-width: 600px;
-            margin: 0 auto;
-            padding: 70px 50px 0;
-            text-align: center;
+            max-width: 500px;
+            padding: 2rem;
+        }
+
+        .login-content p {
+            font-family: 'Red Hat Display', sans-serif;
+            color: var(--text-body);
+            line-height: 1.6;
         }
 
         .login-media img {
-            width: 90%;
-        }
-        .login-media {
-            margin-top: 80px;
-        }
-
-        .login-card-body{
-            background-color: transparent !important;
+            max-width: 80%;
+            height: auto;
         }
 
         .login-form {
-            padding: 0 50px;
-            max-width: 600px;
+            padding: 3rem;
+            max-width: 500px;
             margin: 0 auto;
         }
-        .login-content img{
-            height: 70px;
-        }
 
-        body{
-            overflow: hidden;
-        }
-        .login-form .login-title {
-            text-align: center;
-            position: relative;
-            margin-bottom: 48px;
-            z-index: 1;
-            display: flex;
-            align-items: center;
-        }
-        .form-control {
-            background: #fff;
-            border: 0.0625rem solid #e6e6e6;
-            padding: 0.3125rem 1.25rem;
-            color: #6e6e6e;
+        .btn-primary {
             height: 3.5rem;
-            border-radius: 1rem;
+            font-size: 1.1rem;
         }
-        .input-group-append{
-            background-color: white;
-            border-top-right-radius: 1rem !important;
-            border-bottom-right-radius: 1rem !important;
-        }
-        .input-group-text{
-            background-color: white;
-            border: 0.0625rem solid #e6e6e6;
 
-            border-top-right-radius: 1rem !important;
-            border-bottom-right-radius: 1rem !important;
+        a {
+            color: var(--primary-lilac);
+            font-weight: 500;
         }
-        @media (max-width: 600px){
-            .login-content {
-                max-width: 600px;
-                margin: 0 auto;
-                padding: 20px 10px 0;
-                text-align: center;
-            }
+
+        a:hover {
+            color: var(--primary-lilac-hover);
+        }
+
+        @media (max-width: 991.98px) {
             .login-form {
-                padding: 0 10px;
-
+                padding: 1.5rem;
             }
         }
-
-
     </style>
 </x-laravel-ui-adminlte::adminlte-layout>

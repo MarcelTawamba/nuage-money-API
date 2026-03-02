@@ -41,6 +41,7 @@ class PayOutRequest extends Model
      * @var array<int, string>
      */
     protected $fillable = [
+        'yellowcard_id',
         'service',
         'bank_code',
         'account_number',

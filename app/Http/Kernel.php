@@ -75,5 +75,6 @@ class Kernel extends HttpKernel
         'api.key' => \App\Http\Middleware\AuthenticateApiKey::class,
         'api.rate_limit' => \App\Http\Middleware\RateLimitApiKey::class,
         'auth.passport' => \App\Http\Middleware\Authenticate::class . ':api',
+        'ensure.api_key' => \App\Http\Middleware\EnsureUserHasApiKey::class,
     ];
 }

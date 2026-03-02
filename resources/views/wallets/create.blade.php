@@ -19,7 +19,7 @@
 
         <div class="">
 
-            {!! Form::open(['route' => 'wallets.store']) !!}
+            {!! Form::open(['route' => 'fiat-wallets.store']) !!}
 
             <div class="card-body">
 
@@ -31,7 +31,7 @@
 
             <div class="card-footer">
                 {!! Form::submit('Save', ['class' => 'btn btn-primary']) !!}
-                <a href="{{ route('wallets.index') }}" class="btn btn-default"> Cancel </a>
+                <a href="{{ route('fiat-wallets.index') }}" class="btn btn-default"> Cancel </a>
             </div>
 
             {!! Form::close() !!}

@@ -7,9 +7,12 @@ use App\Http\Requests\ChangePasswordRequest;
 use App\Http\Requests\CreateUserRequest;
 use App\Http\Requests\UpdateProfileRequest;
 use App\Http\Requests\UpdateUserRequest;
+use App\Models\ApiKey;
+use App\Models\ApiScope;
 use App\Models\Client;
 use App\Models\Company;
 use App\Repositories\UserRepository;
+use App\Services\ApiKeyService;
 use Illuminate\Http\Request;
 use Flash;
 use Illuminate\Support\Facades\Auth;
@@ -22,10 +25,14 @@ class UserController extends AppBaseController
 {
     /** @var UserRepository $userRepository*/
     private $userRepository;
+    
+    /** @var ApiKeyService $apiKeyService*/
+    private $apiKeyService;
 
-    public function __construct(UserRepository $userRepo)
+    public function __construct(UserRepository $userRepo, ApiKeyService $apiKeyService)
     {
         $this->userRepository = $userRepo;
+        $this->apiKeyService = $apiKeyService;
     }
 
     /**
@@ -221,5 +228,99 @@ class UserController extends AppBaseController
 
         Flash::success('Password change successfully.');
         return redirect(route('users.profile.edit'));
+    }
+
+    /**
+     * Display the API key management page.
+     */
+    public function apiKey()
+    {
+        $user = Auth::user();
+        
+        // Get user's existing API keys (with full access scope)
+        $apiKeys = ApiKey::where('user_id', $user->id)
+            ->with('scopes')
+            ->whereHas('scopes', function($query) {
+                $query->where('name', '*');
+            })
+            ->latest()
+            ->get();
+        
+        return view('users.api_key')->with('user', $user)->with('apiKeys', $apiKeys);
+    }
+
+    /**
+     * Generate a new API key with full scopes for the authenticated user.
+     */
+    public function generateApiKey(Request $request)
+    {
+        $user = Auth::user();
+        
+        // Check if user already has an active API key with full scopes
+        $existingKey = ApiKey::where('user_id', $user->id)
+            ->where('is_active', true)
+            ->whereHas('scopes', function($query) {
+                $query->where('name', '*');
+            })
+            ->first();
+        
+        if ($existingKey) {
+            Flash::warning('You already have an active API key with full access. Please revoke it first if you want to generate a new one.');
+            return redirect(route('users.api_key'));
+        }
+        
+        // Get the full access scope
+        $fullAccessScope = ApiScope::where('name', '*')->first();
+        
+        if (!$fullAccessScope) {
+            Flash::error('Full access scope not found. Please run database seeders.');
+            return redirect(route('users.api_key'));
+        }
+        
+        // Generate API key with full scopes
+        $result = $this->apiKeyService->generateKey(
+            $user->id,
+            $user->company_id ?? null,
+            'Admin API Key - ' . now()->format('Y-m-d H:i:s'),
+            config('app.env') === 'production' ? 'live' : 'test',
+            [$fullAccessScope->id],
+            'enterprise' // Highest tier for admin users
+        );
+        
+        // Store the plain key in session to display once
+        session()->flash('new_api_key', $result['plain_key']);
+        Flash::success('API Key generated successfully! Make sure to copy it now as it will not be shown again.');
+        
+        // If there was an intended URL, show a button to go there
+        if (session('url.intended')) {
+            session()->flash('redirect_url', session('url.intended'));
+            session()->forget('url.intended');
+        }
+        
+        return redirect(route('users.api_key'));
+    }
+
+    /**
+     * Revoke (delete) an API key.
+     */
+    public function revokeApiKey(string $id)
+    {
+        $user = Auth::user();
+        
+        // Find the API key and verify it belongs to the user
+        $apiKey = ApiKey::where('id', $id)
+            ->where('user_id', $user->id)
+            ->first();
+        
+        if (!$apiKey) {
+            Flash::error('API Key not found or you do not have permission to delete it.');
+            return redirect(route('users.api_key'));
+        }
+        
+        // Soft delete the API key
+        $apiKey->delete();
+        
+        Flash::success('API Key has been revoked successfully.');
+        return redirect(route('users.api_key'));
     }
 }

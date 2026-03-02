@@ -28,10 +28,13 @@ final class PaymentStatus extends Enum
         switch ($value) {
             case 'successful':
             case 'verified':
+            case 'completed':
+            case 'complete':
                 return self::SUCCESSFUL;
             case 'failed':
                 return self::FAILED;
             case 'pending':
+            case 'processing':
                 return self::PENDING;
             case 'initiated':
                 return self::INITIATED;

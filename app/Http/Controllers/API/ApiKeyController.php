@@ -52,7 +52,7 @@ class ApiKeyController extends Controller
         $validated = $request->validate([
             'name' => 'required|string|max:255',
             'environment' => ['required', Rule::in(['test', 'live'])],
-            'rate_limit_tier' => ['nullable', Rule::in(['free', 'basic', 'standard', 'premium', 'enterprise'])],
+            'rate_limit_tier' => ['nullable', Rule::in(['free', 'basic', 'premium', 'enterprise'])],
             'scope_ids' => 'nullable|array',
             'scope_ids.*' => 'exists:api_scopes,id',
             'expires_at' => 'nullable|date|after:now',

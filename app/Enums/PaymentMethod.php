@@ -22,4 +22,6 @@ final class PaymentMethod extends Enum
     const VALR = "valr";
     const BRIDGE = "bridge";
     const KORAPAY = "korapay";
+    const YELLOWCARD_BANK = "yellowcard_bank";
+    const YELLOWCARD_MOBILE = "yellowcard_mobile";
 }

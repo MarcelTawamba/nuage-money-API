@@ -3,6 +3,7 @@
 namespace App\Http\Controllers\API;
 
 use App\Http\Controllers\Controller;
+use App\Http\Resources\UserResource;
 use App\Models\User;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
@@ -12,7 +13,7 @@ use Illuminate\Validation\ValidationException;
 class AuthController extends Controller
 {
     /**
-     * Login and get Sanctum token for API key management
+     * Login and get Passport token for API key management
      */
     public function login(Request $request): JsonResponse
     {
@@ -40,11 +41,7 @@ class AuthController extends Controller
             'success' => true,
             'message' => 'Logged in successfully',
             'data' => [
-                'user' => [
-                    'id' => $user->id,
-                    'name' => $user->name,
-                    'email' => $user->email,
-                ],
+                'user' => new UserResource($user), // Use resource for safe data exposure
                 'token' => $token,
                 'token_type' => 'Bearer',
             ],
@@ -72,11 +69,7 @@ class AuthController extends Controller
     {
         return response()->json([
             'success' => true,
-            'data' => [
-                'id' => $request->user()->id,
-                'name' => $request->user()->name,
-                'email' => $request->user()->email,
-            ],
+            'data' => new UserResource($request->user()),
         ]);
     }
 }

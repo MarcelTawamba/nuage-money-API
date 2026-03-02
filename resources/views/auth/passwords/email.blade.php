@@ -70,11 +70,12 @@
 
 
 
-    <style>
+@include('layouts.coinflow_design')
 
-        body.login-page{
-            background-color: #f6f6f6;
-        }
+<style>
+    body.login-page {
+        overflow-y: auto;
+    }
         .pages-left {
             background-color: #fff;
         }

@@ -23,15 +23,15 @@
                     <a  href="{{route('login')}}"><img style="height: 60px" src="{{url('/images/logo-white.png')}}" class="mb-3 d-lg-none" alt=""></a>
                 </div>
                 <div class="text-center">
-                    <h3 class="title ">Sign In</h3>
-                    <p class="login-box-msg">Register a new membership in nuage pay</p>
+                    <h3 class="title ">Sign Up</h3>
+                    <p class="login-box-msg">Create your Nuage Money account</p>
                 </div>
                 <div class="register-card-body">
 
 
                     <form method="post" action="{{ route('register') }}">
                         @csrf
-                        <div class="input-group  mb-4">
+                        <div class="input-group mb-4">
                             <input type="text" name="name"
                                    class="form-control @error('name') is-invalid @enderror" value="{{ old('name') }}"
                                    placeholder="Full name" required>
@@ -44,49 +44,53 @@
                                 </span>
                             @enderror
                         </div>
+
                         <div class="row">
-                            <div class="input-group col-sm-6 mb-4">
-                                <input type="email" name="email" value="{{ old('email') }}"
-                                       class="form-control @error('email') is-invalid @enderror" placeholder="Email" required>
-                                <div class="input-group-append">
-                                    <div class="input-group-text"><span class="fas fa-envelope"></span></div>
+                            <div class="col-md-6 mb-4">
+                                <div class="input-group">
+                                    <input type="email" name="email" value="{{ old('email') }}"
+                                           class="form-control @error('email') is-invalid @enderror" placeholder="Email" required>
+                                    <div class="input-group-append">
+                                        <div class="input-group-text"><span class="fas fa-envelope"></span></div>
+                                    </div>
+                                    @error('email')
+                                    <span class="invalid-feedback" role="alert">
+                                        <strong>{{ $message }}</strong>
+                                    </span>
+                                    @enderror
                                 </div>
-                                @error('email')
-                                <span class="invalid-feedback" role="alert">
-                                    <strong>{{ $message }}</strong>
-                                </span>
-                                @enderror
                             </div>
 
-                            <div class="input-group col-sm-6 mb-4">
-
-                                <select name="account_type" class="form-control @error('account_type') is-invalid @enderror cust"  required>
-                                    <option disabled selected value="">Type Of Account</option>
-                                    <option @if(old('account_type') == "personal") selected @endif value="personal">Personal</option>
-                                    <option @if(old('account_type') == "company") selected @endif value="company">Company</option>
-                                </select>
-
+                            <div class="col-md-6 mb-4">
+                                <div class="input-group">
+                                    <select name="account_type" class="form-control @error('account_type') is-invalid @enderror cust"  required>
+                                        <option disabled selected value="">Type Of Account</option>
+                                        <option @if(old('account_type') == "personal") selected @endif value="personal">Personal</option>
+                                        <option @if(old('account_type') == "company") selected @endif value="company">Company</option>
+                                    </select>
+                                    <div class="input-group-append">
+                                        <div class="input-group-text"><span class="fas fa-briefcase"></span></div>
+                                    </div>
+                                </div>
                                 @error('account_type')
                                 <span class="invalid-feedback" role="alert">
                                     <strong>{{ $message }}</strong>
                                 </span>
                                 @enderror
                             </div>
-
-
                         </div>
 
-
                         <div class="input-group mb-4">
-
-                            <input  class="form-control" style="max-width: 100px;" name="country_code" list="countries" value="{{ old('country_code')  ? old('country_code') : '237' }}" required>
-                            <datalist id="countries" >
-                                @foreach($countries as $country)
-                                    <option value="{{$country->international_phone}}" >{{$country->name}}</option>
-                                @endforeach
-                            </datalist>
+                            <div class="input-group-prepend">
+                                <input class="form-control" style="width: 80px; border-top-right-radius: 0; border-bottom-right-radius: 0; border-right: none;" name="country_code" list="countries" value="{{ old('country_code')  ? old('country_code') : '237' }}" required>
+                                <datalist id="countries" >
+                                    @foreach($countries as $country)
+                                        <option value="{{$country->international_phone}}" >{{$country->name}}</option>
+                                    @endforeach
+                                </datalist>
+                            </div>
                             <input required  type="tel" name="phone_number" value="{{ old('phone_number') }}"
-                                   class="form-control @error('phone_number') is-invalid @enderror" placeholder="Phone Number">
+                                   class="form-control @error('phone_number') is-invalid @enderror" placeholder="Phone Number" style="border-top-left-radius: 0; border-bottom-left-radius: 0;">
                             <div class="input-group-append">
                                 <div class="input-group-text"><span class="fas fa-phone"></span></div>
                             </div>
@@ -96,11 +100,12 @@
                                 </span>
                             @enderror
                         </div>
+
                         <div class="input-group mb-4 cant d-none">
                             <input  type="text" name="company_name" value="{{ old('company_name') }}"
                                    class="form-control @error('company_name') is-invalid @enderror" placeholder="Company Name">
                             <div class="input-group-append">
-                                <div class="input-group-text"><span style="opacity: 0" class="fas fa-phone"></span></div>
+                                <div class="input-group-text"><span class="fas fa-building"></span></div>
                             </div>
                             @error('company_name')
                             <span class="invalid-feedback" role="alert">
@@ -110,62 +115,69 @@
                         </div>
 
                         <div class="row cant d-none">
-                            <div class="input-group col-sm-6 mb-4">
-                                <input type="text" name="address" value="{{ old('address') }}"
-                                       class="form-control @error('address') is-invalid @enderror" placeholder="Company Address">
-                                <div class="input-group-append">
-                                    <div class="input-group-text"><span class="fas fa-map-marker"></span></div>
+                            <div class="col-md-6 mb-4">
+                                <div class="input-group">
+                                    <input type="text" name="address" value="{{ old('address') }}"
+                                           class="form-control @error('address') is-invalid @enderror" placeholder="Company Address">
+                                    <div class="input-group-append">
+                                        <div class="input-group-text"><span class="fas fa-map-marker"></span></div>
+                                    </div>
+                                    @error('address')
+                                    <span class="invalid-feedback" role="alert">
+                                        <strong>{{ $message }}</strong>
+                                    </span>
+                                    @enderror
                                 </div>
-                                @error('address')
-                                <span class="invalid-feedback" role="alert">
-                                    <strong>{{ $message }}</strong>
-                                </span>
-                                @enderror
                             </div>
 
-
-                            <div class="input-group col-sm-6 mb-4">
-                                <select name="company_type"
-                                       class="form-control @error('company_type') is-invalid @enderror" >
-                                    @foreach(\App\Enums\BusinessType::asArray() as $name)
-                                        <option value="{{$name}}" >{{$name}}</option>
-                                    @endforeach
-
-                                </select>
-
+                            <div class="col-md-6 mb-4">
+                                <div class="input-group">
+                                    <select name="company_type"
+                                           class="form-control @error('company_type') is-invalid @enderror" >
+                                        @foreach(\App\Enums\BusinessType::asArray() as $name)
+                                            <option value="{{$name}}" >{{$name}}</option>
+                                        @endforeach
+                                    </select>
+                                    <div class="input-group-append">
+                                        <div class="input-group-text"><span class="fas fa-tag"></span></div>
+                                    </div>
+                                </div>
                                 @error('company_type')
                                 <span class="invalid-feedback" role="alert">
                                     <strong>{{ $message }}</strong>
                                 </span>
                                 @enderror
                             </div>
-
                         </div>
 
                         <div class="row">
-                            <div class="col-sm-6 input-group mb-4">
-                                <input required type="password" name="password"
-                                       class="form-control @error('password') is-invalid @enderror" placeholder="Password">
-                                <div class="input-group-append">
-                                    <div class="input-group-text"><span class="fas fa-lock"></span></div>
+                            <div class="col-md-6 mb-4">
+                                <div class="input-group">
+                                    <input required type="password" name="password"
+                                           class="form-control @error('password') is-invalid @enderror" placeholder="Password">
+                                    <div class="input-group-append">
+                                        <div class="input-group-text"><span class="fas fa-lock"></span></div>
+                                    </div>
+                                    @error('password')
+                                    <span class="invalid-feedback" role="alert">
+                                        <strong>{{ $message }}</strong>
+                                    </span>
+                                    @enderror
                                 </div>
-                                @error('password')
-                                <span class="invalid-feedback" role="alert">
-                                    <strong>{{ $message }}</strong>
-                                </span>
-                                @enderror
                             </div>
-                            <div class="col-sm-6 input-group mb-4">
-                                <input required type="password" name="password_confirmation" class="form-control"
-                                       placeholder="Retype password">
-                                <div class="input-group-append">
-                                    <div class="input-group-text"><span class="fas fa-lock"></span></div>
+                            <div class="col-md-6 mb-4">
+                                <div class="input-group">
+                                    <input required type="password" name="password_confirmation" class="form-control"
+                                           placeholder="Retype password">
+                                    <div class="input-group-append">
+                                        <div class="input-group-text"><span class="fas fa-lock"></span></div>
+                                    </div>
                                 </div>
                             </div>
                         </div>
 
                         <div class="row">
-                            <div class="col-8">
+                            <div class="col-12 mb-3">
                                 <div class="icheck-primary">
                                     <input required type="checkbox" id="agreeTerms" name="terms" value="agree">
                                     <label for="agreeTerms">
@@ -174,8 +186,8 @@
                                 </div>
                             </div>
                             <!-- /.col -->
-                            <div class="col-12 mt-3 mb-4">
-                                <button style="border-radius: 1rem" type="submit" class="btn btn-primary btn-block">Register</button>
+                            <div class="col-12 mt-2 mb-4">
+                                <button type="submit" class="btn btn-primary btn-block">Register</button>
                             </div>
                             <!-- /.col -->
                         </div>
@@ -189,108 +201,67 @@
     <!-- /.login-box -->
     </body>
 
-    <style>
+@include('layouts.coinflow_design')
 
-        body.login-page{
-            background-color: #f6f6f6;
-        }
+<style>
+    body.login-page {
+        overflow-y: auto;
+    }
+
         .pages-left {
-            background-color: #fff;
+            background-color: var(--bg-input);
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
         }
 
         .login-content {
+            max-width: 500px;
+            padding: 2rem;
+        }
 
-            margin: 0 auto;
-            padding: 70px 50px 0;
-            text-align: center;
+        .login-content p {
+            font-family: 'Red Hat Display', sans-serif;
+            color: var(--text-body);
+            line-height: 1.6;
         }
 
         .login-media img {
-            width: 90%;
-        }
-        .login-media {
-            margin-top: 80px;
-        }
-
-        .register-card-body{
-            background-color: transparent !important;
-
-        }
-
-        *::-webkit-scrollbar {
-            width: 5px;
-            height: 5px;
-        }
-
-        *::-webkit-scrollbar-track {
-            background-color: white;
-        }
-
-        *::-webkit-scrollbar-thumb {
-            background-color: #818181;
-            border-radius: 100px;
-            margin: 12px;
+            max-width: 80%;
+            height: auto;
         }
 
         .login-form {
-            padding: 0 50px;
-
+            padding: 2rem;
+            max-width: 700px;
             margin: 0 auto;
-
-        }
-        .login-content img{
-            height: 70px;
-        }
-        .input-group-append{
-            height: 56px !important;
         }
 
-        body{
-            overflow-y: scroll;
-            overflow-x: hidden;
-        }
-        .login-form .login-title {
-            text-align: center;
-            position: relative;
-            margin-bottom: 48px;
-            z-index: 1;
-            display: flex;
-            align-items: center;
-        }
-        .form-control {
-            background: #fff;
-            border: 0.0625rem solid #e6e6e6;
-            padding: 0.3125rem 1.25rem;
-            color: #6e6e6e;
+        .btn-primary {
             height: 3.5rem;
-            border-radius: 1rem;
+            font-size: 1.1rem;
         }
-        .input-group-append{
-            background-color: white;
-            border-top-right-radius: 1rem !important;
-            border-bottom-right-radius: 1rem !important;
-        }
-        .input-group-text{
-            background-color: white;
-            border: 0.0625rem solid #e6e6e6;
 
-            border-top-right-radius: 1rem !important;
-            border-bottom-right-radius: 1rem !important;
+        a {
+            color: var(--primary-lilac);
+            font-weight: 500;
         }
-        @media (max-width: 600px){
-            .login-content {
-                max-width: 600px;
-                margin: 0 auto;
-                padding: 20px 10px 0;
-                text-align: center;
-            }
+
+        a:hover {
+            color: var(--primary-lilac-hover);
+        }
+
+        .icheck-primary > input:first-child:checked + label::before {
+            background-color: var(--primary-lilac);
+            border-color: var(--primary-lilac);
+        }
+
+        @media (max-width: 991.98px) {
             .login-form {
-                padding: 0 10px;
-
+                padding: 1.5rem;
             }
         }
-
-
     </style>
 
     <script>

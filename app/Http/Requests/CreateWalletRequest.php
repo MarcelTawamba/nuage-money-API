@@ -26,7 +26,7 @@ class CreateWalletRequest extends FormRequest
     {
         return [
             "client_id"=>"required|string|exists:App\Models\Client,id",
-            "currency_id"=>"required|string|exists:App\Models\WalletType,id",
+            "currency_id"=>"required",
         ];
     }
 }

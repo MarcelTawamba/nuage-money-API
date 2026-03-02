@@ -19,7 +19,7 @@ yarn-error.log
 .DS_Store
 .phpstorm.meta.php
 _ide_helper.php
-
+/scripts
 
 
 # Large media files

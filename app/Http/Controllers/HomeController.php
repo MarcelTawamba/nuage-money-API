@@ -5,6 +5,7 @@ namespace App\Http\Controllers;
 use App\Enums\PaymentStatus;
 use App\Models\Achat;
 use App\Models\Client;
+use App\Models\ClientCryptoWallet;
 use App\Models\Company;
 use App\Models\Order;
 use App\Models\SystemLedger;
@@ -103,6 +104,18 @@ class HomeController extends Controller
                 $client_id[] = $client->id;
             }
             $wallets = $user->wallets_nuage();
+            
+            // Get crypto wallets for the user and their company clients
+            $cryptoWallets = ClientCryptoWallet::with(['client', 'cryptoAsset'])
+                ->whereIn('client_id', array_merge(
+                    $client_id,
+                    // Also include personal crypto wallets linked to user
+                    Client::where('user_id', $user->id)
+                        ->where('name', 'LIKE', '%Personal Crypto%')
+                        ->pluck('id')
+                        ->toArray()
+                ))
+                ->get();
             $achat = Achat::whereIn("client_id",$client_id)->get();
             $trans = Achat::whereIn("client_id",$client_id)->where("status",PaymentStatus::SUCCESSFUL)
                 ->select(DB::raw('DATE(created_at) as date'), DB::raw('sum(amount) as amount'),"currency")
@@ -149,10 +162,16 @@ class HomeController extends Controller
             $wall[$wal->id]=$wal->name;
         }
 
+        // Set crypto wallets to empty for admin (they see all system wallets, not crypto)
+        if (!isset($cryptoWallets)) {
+            $cryptoWallets = collect();
+        }
+
         return view('home')->with("companies",$companies)
             ->with("clients",$clients)
             ->with("users",$users)
             ->with("wallets",$wallets)
+            ->with("cryptoWallets",$cryptoWallets)
             ->with("achat",$achat)
             ->with("transactions",$transactions)
             ->with("trans",$trans)

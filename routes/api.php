@@ -16,8 +16,10 @@ use Illuminate\Support\Facades\Auth;
 |
 */
 
-
+// callbacks / webhooks - Public endpoints (Signature verification inside controllers)
 Route::post('startbutton-callback', [\App\Http\Controllers\API\StartButton\WebHookController::class, 'handleWebhook']);
+Route::post('yellowcard-callback', [\App\Http\Controllers\API\YellowCard\WebHookController::class, 'handleWebhook']);
+Route::post('korapay-callback', [App\Http\Controllers\API\KorapayController::class, 'handleWebhook']);
 
 // Authentication routes (for getting Passport tokens)
 Route::prefix('auth')->group(function () {
@@ -202,6 +204,82 @@ Route::prefix('valr')->middleware(['api.key', 'api.rate_limit'])->group(function
         ->middleware('api.key:wallets:read');
 });
 
+// STARTBUTTON API Routes - for testing and integration (protected by API key)
+Route::prefix('startbutton')->middleware(['api.key', 'api.rate_limit'])->group(function () {
+    // Banks
+    Route::get('banks', [App\Http\Controllers\API\StartButtonController::class, 'getBanks'])
+        ->middleware('api.key:currencies:read');
+    
+    // Wallet
+    Route::get('wallet/balance', [App\Http\Controllers\API\StartButtonController::class, 'getWalletBalance'])
+        ->middleware('api.key:wallets:read');
+    
+    // Bank account validation
+    Route::post('bank/validate', [App\Http\Controllers\API\StartButtonController::class, 'validateBankAccount'])
+        ->middleware('api.key:payments:read');
+    
+    // Payments
+    Route::post('payment/request', [App\Http\Controllers\API\StartButtonController::class, 'requestPayment'])
+        ->middleware('api.key:payments:write');
+    Route::post('transfer', [App\Http\Controllers\API\StartButtonController::class, 'makeTransfer'])
+        ->middleware('api.key:payments:write');
+    Route::get('transaction/{reference}', [App\Http\Controllers\API\StartButtonController::class, 'checkTransaction'])
+        ->middleware('api.key:payments:read');
+    
+    // Conversion
+    Route::post('convert', [App\Http\Controllers\API\StartButtonController::class, 'convertFunds'])
+        ->middleware('api.key:currencies:write');
+});
+
+// YELLOWCARD API Routes - for testing and integration (protected by API key)
+Route::prefix('yellowcard')->middleware(['api.key', 'api.rate_limit'])->group(function () {
+    // Channels - Get available payment channels
+    Route::get('channels', [App\Http\Controllers\API\YellowCardController::class, 'getChannels'])
+        ->middleware('api.key:currencies:read');
+    
+    // Widget Channels - Get widget-ready payment channels (filtered for widget operations)
+    Route::get('widget-channels', [App\Http\Controllers\API\YellowCardController::class, 'getWidgetChannels'])
+        ->middleware('api.key:currencies:read');
+    
+    // Exchange rates - Get currency exchange rates
+    Route::get('exchange-rates', [App\Http\Controllers\API\YellowCardController::class, 'getExchangeRates'])
+        ->middleware('api.key:currencies:read');
+    
+    // Networks - Get payment networks (mobile money providers, etc.)
+    Route::get('networks', [App\Http\Controllers\API\YellowCardController::class, 'getNetworks'])
+        ->middleware('api.key:currencies:read');
+    
+    // Account - Get account information and balances
+    Route::get('account', [App\Http\Controllers\API\YellowCardController::class, 'getAccount'])
+        ->middleware('api.key:wallets:read');
+    
+    // Payments - Payment operations
+    Route::get('payments', [App\Http\Controllers\API\YellowCardController::class, 'getPayments'])
+        ->middleware('api.key:payments:read');
+    Route::get('payments/{paymentId}', [App\Http\Controllers\API\YellowCardController::class, 'getPayment'])
+        ->middleware('api.key:payments:read');
+    Route::post('payments', [App\Http\Controllers\API\YellowCardController::class, 'submitPayment'])
+        ->middleware('api.key:payments:write');
+    
+    // Collections - Collect payments from customers (pay-ins/deposits) via /business/collections
+    Route::get('collections/{collectionId}', [App\Http\Controllers\API\YellowCardController::class, 'getCollection'])
+        ->middleware('api.key:payments:read');
+    Route::post('collections', [App\Http\Controllers\API\YellowCardController::class, 'submitCollection'])
+        ->middleware('api.key:payments:write');
+
+    // Fees - Get fee estimates for transactions
+    Route::post('network-fee', [App\Http\Controllers\API\YellowCardController::class, 'getNetworkFee'])
+        ->middleware('api.key:fees:read');
+    
+    // Widget Quote - Get quote for widget transactions
+    Route::post('widget-quote', [App\Http\Controllers\API\YellowCardController::class, 'getWidgetQuote'])
+        ->middleware('api.key:fees:read');
+    
+    // Validate Widget Quote - Pre-validate widget quote parameters without calling API
+    Route::post('validate-widget-quote', [App\Http\Controllers\API\YellowCardController::class, 'validateWidgetQuote'])
+        ->middleware('api.key:fees:read');
+});
+
 // Korapay API Routes
 Route::prefix('korapay')->middleware(['api.key', 'api.rate_limit'])->group(function () {
     // Balances
@@ -237,9 +315,6 @@ Route::prefix('korapay')->middleware(['api.key', 'api.rate_limit'])->group(funct
     // Line 39 extension webhooks are public (or custom middleware).
     // So I should probably put the webhook OUTSIDE the api.key middleware group.
 });
-
-// Korapay Webhook - Public endpoint (Signature verification inside controller)
-Route::post('korapay/webhook', [App\Http\Controllers\API\KorapayController::class, 'handleWebhook']);
 
 //
 //Route::post("dish", function () {

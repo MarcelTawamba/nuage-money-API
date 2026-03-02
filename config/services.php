@@ -47,4 +47,13 @@ return [
         ],
     ],
 
+    'blockradar' => [
+        'base_url' => env('BLOCKRADAR_BASE_URL'),
+        'master_api_key' => env('BLOCKRADAR_MASTER_API_KEY'),
+        'webhook_secret' => env('BLOCKRADAR_WEBHOOK_SECRET'),
+        'env' => env('BLOCKRADAR_ENV', 'sandbox'),
+        'base_wallet_id' => env('BLOCKRADAR_BASE_WALLET_ID'),
+        'solana_wallet_id' => env('BLOCKRADAR_SOLANA_WALLET_ID'),
+    ],
+
 ];

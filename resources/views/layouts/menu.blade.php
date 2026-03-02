@@ -6,6 +6,13 @@
     </a>
 </li>
 
+<li class="nav-item">
+    <a href="{{ route('users.api_key') }}" class="nav-link {{ Request::is('admin/api-key*') ? 'active' : '' }}">
+        <i class="nav-icon fas fa-key"></i>
+        <p>API Key</p>
+    </a>
+</li>
+
 @if(Auth::user()->is_admin)
     <li class="nav-item">
         <a href="{{ route('users.index') }}" class="nav-link {{ Request::is('admin/users*') ? 'active' : '' }}">
@@ -32,9 +39,15 @@
 
 
 <li class="nav-item">
-    <a href="{{ route('wallets.index') }}" class="nav-link {{ Request::is('admin/wallets*') ? 'active' : '' }}">
+    <a href="{{ route('fiat-wallets.index') }}" class="nav-link {{ Request::is('admin/fiat-wallets*') ? 'active' : '' }}">
         <i class="nav-icon fas fa-wallet"></i>
-        <p>Wallets</p>
+        <p>Fiat Wallets</p>
+    </a>
+</li>
+<li class="nav-item">
+    <a href="{{ route('crypto-wallets.index') }}" class="nav-link {{ Request::is('admin/crypto-wallets*') ? 'active' : '' }}">
+        <i class="nav-icon fab fa-bitcoin"></i>
+        <p>Crypto Wallets</p>
     </a>
 </li>
 <li class="nav-item">
@@ -136,8 +149,4 @@
 {{--        </a>--}}
 {{--    </li>--}}
 
-
 @endif
-
-
-

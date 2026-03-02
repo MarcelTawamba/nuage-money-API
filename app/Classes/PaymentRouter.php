@@ -78,12 +78,22 @@ class PaymentRouter
             return 'bridge';
         }
 
-        // Priority 3: Fincra for fiat bank/mobile money payouts
+        // Priority 3: YellowCard for African markets (bank/mobile money)
+        if ($this->hasYellowCardRequirements($data) && $this->isYellowCardConfigured()) {
+            return 'yellowcard';
+        }
+
+        // Priority 4: Korapay for African markets (bank/mobile money)
+        if ($this->hasKorapayRequirements($data) && $this->isKorapayConfigured()) {
+            return 'korapay';
+        }
+
+        // Priority 5: Fincra for fiat bank/mobile money payouts
         // if ($this->hasFincraRequirements($data) && $this->isFincraConfigured()) {
         //     return 'fincra';
         // }
 
-        // Priority 4: StartButton as fallback for bank/mobile money
+        // Priority 6: StartButton as fallback for bank/mobile money
         return 'startbutton';
     }
 
@@ -98,6 +108,8 @@ class PaymentRouter
         return match($provider) {
             'valr' => $this->routeToValr($data),
             'bridge' => $this->routeToBridge($data),
+            'yellowcard' => $this->routeToYellowCard($data),
+            'korapay' => $this->routeToKorapay($data),
             //'fincra' => $this->routeToFincra($data),
             'startbutton' => $this->routeToStartButton($data),
             default => $this->routeToStartButton($data), // Fallback to StartButton
@@ -163,6 +175,60 @@ class PaymentRouter
     }
 
     /**
+     * Route to YellowCard for payout
+     */
+    private function routeToYellowCard(array $data): JsonResponse
+    {
+        Log::info('Routing to YellowCard');
+        
+        if (!$this->isYellowCardConfigured()) {
+            Log::warning('YellowCard not configured, falling back to StartButton');
+            return $this->routeToStartButton($data);
+        }
+
+        if (!$this->hasYellowCardRequirements($data)) {
+            Log::warning('Missing YellowCard requirements, falling back to StartButton');
+            return $this->routeToStartButton($data);
+        }
+
+        try {
+            return YellowCardPaymentHelper::initPayout($data);
+        } catch (\Exception $e) {
+            Log::error('YellowCard payout failed, falling back to StartButton', [
+                'error' => $e->getMessage()
+            ]);
+            return $this->routeToStartButton($data);
+        }
+    }
+
+    /**
+     * Route to Korapay for payout
+     */
+    private function routeToKorapay(array $data): JsonResponse
+    {
+        Log::info('Routing to Korapay');
+        
+        if (!$this->isKorapayConfigured()) {
+            Log::warning('Korapay not configured, falling back to StartButton');
+            return $this->routeToStartButton($data);
+        }
+
+        if (!$this->hasKorapayRequirements($data)) {
+            Log::warning('Missing Korapay requirements, falling back to StartButton');
+            return $this->routeToStartButton($data);
+        }
+
+        try {
+            return KorapayPaymentHelper::initPayout($data);
+        } catch (\Exception $e) {
+            Log::error('Korapay payout failed, falling back to StartButton', [
+                'error' => $e->getMessage()
+            ]);
+            return $this->routeToStartButton($data);
+        }
+    }
+
+    /**
      * Route to Fincra for payout
      */
     private function routeToFincra(array $data): JsonResponse
@@ -217,6 +283,22 @@ class PaymentRouter
     }
 
     /**
+     * Check if YellowCard is configured
+     */
+    private function isYellowCardConfigured(): bool
+    {
+        return !empty(env('YELLOWCARD_API_KEY'));
+    }
+
+    /**
+     * Check if Korapay is configured
+     */
+    private function isKorapayConfigured(): bool
+    {
+        return !empty(env('KORAPAY_SECRET_KEY'));
+    }
+
+    /**
      * Check if Fincra is configured
      */
     private function isFincraConfigured(): bool
@@ -241,6 +323,30 @@ class PaymentRouter
         return !empty($data['metadata']['dest_external_account_id']) ||
                !empty($data['metadata']['dest_wallet_id']) ||
                !empty($data['metadata']['dest_crypto_address']);
+    }
+
+    /**
+     * Check if data has YellowCard requirements (bank/mobile money for African markets)
+     */
+    private function hasYellowCardRequirements(array $data): bool
+    {
+        $africanCountries = ['NG', 'GH', 'KE', 'UG', 'ZA', 'TZ', 'RW'];
+        $isAfricanMarket = in_array($data['country'] ?? '', $africanCountries);
+        
+        return $isAfricanMarket && (
+            (!empty($data['metadata']['bank_code']) && !empty($data['metadata']['dest_account_number'])) ||
+            !empty($data['metadata']['phone_number'])
+        );
+    }
+
+    /**
+     * Check if data has Korapay requirements (bank or mobile money details)
+     */
+    private function hasKorapayRequirements(array $data): bool
+    {
+        return (!empty($data['metadata']['bank_code']) && !empty($data['metadata']['dest_account_number'])) ||
+               (!empty($data['metadata']['account_number'])) ||
+               (!empty($data['metadata']['destination']));
     }
 
     /**
@@ -270,6 +376,8 @@ class PaymentRouter
     {
         return $this->hasValrRequirements($data) ||
                $this->hasBridgeRequirements($data) ||
+               $this->hasYellowCardRequirements($data) ||
+               $this->hasKorapayRequirements($data) ||
             //    $this->hasFincraRequirements($data) ||
                $this->hasStartButtonRequirements($data);
     }
@@ -289,6 +397,14 @@ class PaymentRouter
 
         if ($this->hasBridgeRequirements($data) && $this->isBridgeConfigured()) {
             $providers[] = 'bridge';
+        }
+
+        if ($this->hasYellowCardRequirements($data) && $this->isYellowCardConfigured()) {
+            $providers[] = 'yellowcard';
+        }
+
+        if ($this->hasKorapayRequirements($data) && $this->isKorapayConfigured()) {
+            $providers[] = 'korapay';
         }
 
         // if ($this->hasFincraRequirements($data) && $this->isFincraConfigured()) {

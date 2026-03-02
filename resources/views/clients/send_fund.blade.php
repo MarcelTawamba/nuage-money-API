@@ -26,7 +26,7 @@
                 <div class="row">
                     <div class="form-group col-sm-6">
                         {!! Form::label('currency', 'Currency') !!}
-                        {!! Form::select('currency', $currency , null, ['class' => 'form-control custom-select currency']) !!}
+                        {!! Form::select('currency', $currency , $defaultCurrency ?? null, ['class' => 'form-control custom-select currency']) !!}
                     </div>
 
                     <!-- Name Field -->
@@ -78,7 +78,7 @@
 
             <div class="ml-4 mb-4">
                 {!! Form::submit('Save', ['class' => 'btn btn-primary']) !!}
-                <a href="{{ route('home') }}" class="btn btn-default ml-2"> Cancel </a>
+                <a href="{{ url()->previous() }}" class="btn btn-default ml-2"> Cancel </a>
             </div>
 
             {!! Form::close() !!}

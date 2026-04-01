@@ -241,6 +241,49 @@ Route::prefix('korapay')->middleware(['api.key', 'api.rate_limit'])->group(funct
 // Korapay Webhook - Public endpoint (Signature verification inside controller)
 Route::post('korapay/webhook', [App\Http\Controllers\API\KorapayController::class, 'handleWebhook']);
 
+// Flutterwave API Routes
+Route::prefix('flutterwave')->middleware(['api.key', 'api.rate_limit'])->group(function () {
+
+    // Customers
+    Route::post('customers', [App\Http\Controllers\API\FlutterwaveController::class, 'createCustomer'])
+        ->middleware('api.key:payments:write');
+    Route::get('customers/{customerId}', [App\Http\Controllers\API\FlutterwaveController::class, 'getCustomer'])
+        ->middleware('api.key:payments:read');
+
+    // Payment Methods
+    Route::post('payment-methods/card', [App\Http\Controllers\API\FlutterwaveController::class, 'createCardPaymentMethod'])
+        ->middleware('api.key:payments:write');
+    Route::post('payment-methods/momo', [App\Http\Controllers\API\FlutterwaveController::class, 'createMoMoPaymentMethod'])
+        ->middleware('api.key:payments:write');
+
+    // Charges (Pay-ins)
+    Route::post('charges', [App\Http\Controllers\API\FlutterwaveController::class, 'createCharge'])
+        ->middleware('api.key:payments:write');
+    Route::put('charges/{chargeId}/authorize', [App\Http\Controllers\API\FlutterwaveController::class, 'authorizeCharge'])
+        ->middleware('api.key:payments:write');
+    Route::get('charges/{chargeId}', [App\Http\Controllers\API\FlutterwaveController::class, 'getCharge'])
+        ->middleware('api.key:payments:read');
+
+    // Direct Transfers (Payouts)
+    Route::post('transfers/resolve-bank', [App\Http\Controllers\API\FlutterwaveController::class, 'resolveBankAccount'])
+        ->middleware('api.key:payments:read');
+    Route::post('transfers', [App\Http\Controllers\API\FlutterwaveController::class, 'createTransfer'])
+        ->middleware('api.key:payments:write');
+    Route::get('transfers/{transferId}', [App\Http\Controllers\API\FlutterwaveController::class, 'getTransfer'])
+        ->middleware('api.key:payments:read');
+
+    // Refunds
+    Route::post('refunds', [App\Http\Controllers\API\FlutterwaveController::class, 'createRefund'])
+        ->middleware('api.key:payments:write');
+    Route::get('refunds', [App\Http\Controllers\API\FlutterwaveController::class, 'listRefunds'])
+        ->middleware('api.key:payments:read');
+    Route::get('refunds/{refundId}', [App\Http\Controllers\API\FlutterwaveController::class, 'getRefund'])
+        ->middleware('api.key:payments:read');
+});
+
+// Flutterwave Webhook - Public endpoint (HMAC signature verified inside controller)
+Route::post('flutterwave/webhook', [App\Http\Controllers\API\FlutterwaveController::class, 'handleWebhook']);
+
 //
 //Route::post("dish", function () {
 //    $achat = \App\Models\Achat::find(15);

@@ -22,4 +22,5 @@ final class PaymentMethod extends Enum
     const VALR = "valr";
     const BRIDGE = "bridge";
     const KORAPAY = "korapay";
+    const FLUTTERWAVE = "flutterwave";
 }

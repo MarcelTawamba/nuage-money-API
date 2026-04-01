@@ -63,3 +63,5 @@ cloudbuild.yaml
 # AI context documentation (local only)
 .ai/
 .github/copilot-instructions.md
+database/database.sqlite
+scripts/
